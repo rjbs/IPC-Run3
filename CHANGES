@@ -1,8 +1,13 @@
-Changes file for IPC::Run3
+CHANGES file for IPC::Run3
+
+0.007 Tue Apr  1 09:02:21 EST 2003
+    - Fixed STDIN fd leak on NT 4.51 and perhaps other Win32s
+    - Solved problem of world peace, see PEACE.txt
+    - Improved t/fd_leak.t
 
 0.006 Fri Mar 21 12:07:47 EST 2003
     - Port to Win32
-    - Test for and eliminate an fd leak on Unix
+    - Test for and eliminate an fd leak
 
 0.005 Tue Feb 25 15:11:47 EST 2003
     - Fixed a few bugs in dealing with temp files and non-temp files

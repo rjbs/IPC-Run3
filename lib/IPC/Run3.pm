@@ -1,6 +1,6 @@
 package IPC::Run3;
 
-$VERSION = 0.006;
+$VERSION = 0.007;
 
 =head1 NAME
 
@@ -173,7 +173,7 @@ use POSIX qw( dup dup2 );
 
 use strict;
 
-sub _spool {
+sub _spool_data_to_child {
     my ( $type, $source, $binmode_it ) = @_;
 
     ## If undef (not \undef) passed, they want the child to inherit
@@ -295,7 +295,7 @@ sub _fh_for_child_output {
 }
 
 
-sub _read_spool {
+sub _read_child_output_fh {
     my ( $what, $type, $dest, $fh, $options ) = @_;
 
     return if $type eq "SCALAR" && ! defined $dest == \undef;
@@ -406,7 +406,7 @@ sub run3 {
     ## stage prevents later stages from running, and thus from needing
     ## cleanup.
 
-    my $in_fh  = _spool $in_type, $stdin,
+    my $in_fh  = _spool_data_to_child $in_type, $stdin,
         $options->{binmode_stdin} if defined $stdin;
 
     my $out_fh = _fh_for_child_output "stdout", $out_type, $stdout,
@@ -442,6 +442,9 @@ sub run3 {
 #        open STDIN,  "<&=" . fileno $in_fh
             or croak "run3(): $! redirecting STDIN"
             if defined $in_fh;
+
+        close $in_fh or croak "$! closing STDIN temp file"
+            if ref $stdin;
 
         open STDOUT, ">&" . fileno $out_fh
             or croak "run3(): $! redirecting STDOUT"
@@ -497,9 +500,9 @@ sub run3 {
 
     die $x unless $ok;
 
-    _read_spool "stdout", $out_type, $stdout, $out_fh, $options
+    _read_child_output_fh "stdout", $out_type, $stdout, $out_fh, $options
         if defined $out_fh && $out_type && $out_type ne "FH";
-    _read_spool "stderr", $err_type, $stderr, $err_fh, $options
+    _read_child_output_fh "stderr", $err_type, $stderr, $err_fh, $options
         if defined $err_fh && $err_type && $err_type ne "FH" && !$tie_err_to_out;
     return 1;
 }
