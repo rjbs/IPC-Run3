@@ -1,5 +1,9 @@
 CHANGES file for IPC::Run3
 
+0.009 Fri Sep 26 15:44:18 EDT 2003
+    - CRLF bugs fixed on WinNT, WinXP, Win2K
+    - 0.008 slipped out without an update to this file.
+
 0.007 Tue Apr  1 09:02:21 EST 2003
     - Fixed STDIN fd leak on NT 4.51 and perhaps other Win32s
     - Solved problem of world peace, see PEACE.txt

@@ -1,6 +1,6 @@
 package IPC::Run3;
 
-$VERSION = 0.007;
+$VERSION = 0.009;
 
 =head1 NAME
 
@@ -64,6 +64,14 @@ a non-zero integer value:
     $ IPCRUN3DEBUG=1 myapp
 
 .
+
+=head1 PROFILING
+
+To enable profiling, set IPCRUN3PROFILE to a number to enable
+emitting profile information to STDERR (1 to get timestamps,
+2 to get a summary report at the END of the program,
+3 to get mini reports after each run) or to a filename to
+emit raw data to a file for later analysis.
 
 =head1 COMPARISON
 
@@ -164,14 +172,63 @@ use Exporter;
 
 use strict;
 use constant debugging => $ENV{IPCRUN3DEBUG} || $ENV{IPCRUNDEBUG} || 0;
+use constant profiling => $ENV{IPCRUN3PROFILE} || $ENV{IPCRUNPROFILE} || 0;
 use constant is_win32  => 0 <= index $^O, "Win32";
+
+BEGIN {
+   if ( is_win32 ) {
+      eval "use Win32 qw( GetOSName ); 1" or die $@;
+   }
+}
+
+#use constant is_win2k => is_win32 && GetOSName() =~ /Win2000/i;
+#use constant is_winXP => is_win32 && GetOSName() =~ /WinXP/i;
 
 use Carp qw( croak );
 use File::Temp qw( tempfile );
 use UNIVERSAL qw( isa );
 use POSIX qw( dup dup2 );
 
-use strict;
+## We cache the handles of our temp files in order to
+## keep from having to incur the (largish) overhead of File::Temp
+my %fh_cache;
+
+my $profiler;
+
+sub _profiler { $profiler } ## test suite access
+
+BEGIN {
+    if ( profiling ) {
+        eval "use Time::HiRes qw( gettimeofday ); 1" or die $@;
+        if ( $ENV{IPCRUN3PROFILE} =~ /\A\d+\z/ ) {
+            require IPC::Run3::ProfPP;
+            $profiler = IPC::Run3::ProfPP->new(
+                Level => $ENV{IPCRUN3PROFILE},
+            );
+        }
+        else {
+            my ( $dest, undef, $class ) =
+               reverse split /(=)/, $ENV{IPCRUN3PROFILE}, 2;
+            $class = "IPC::Run3::ProfLogger"
+                unless defined $class && length $class;
+            unless ( eval "require $class" ) {
+                my $x = $@;
+                $class = "IPC::Run3::$class";
+                eval "require IPC::Run3::$class" or die $x;
+            }
+            $profiler = $class->new(
+                Destination => $dest,
+            );
+        }
+        $profiler->app_call( [ $0, @ARGV ], scalar gettimeofday() );
+    }
+}
+
+
+END {
+    $profiler->app_exit( scalar gettimeofday() ) if profiling;
+}
+
 
 sub _spool_data_to_child {
     my ( $type, $source, $binmode_it ) = @_;
@@ -186,7 +243,10 @@ sub _spool_data_to_child {
         local *FH;  ## Do this the backcompat way
         open FH, "<$source" or croak "$!: $source";
         $fh = *FH{IO};
-        binmode $fh, $binmode_it ? ":raw" : ":crlf" if is_win32;
+        if ( is_win32 ) {
+            binmode ":raw"; ## Remove all layers
+            binmode ":crlf" unless $binmode_it;
+        }
         warn "run3(): feeding file '$source' to child STDIN\n"
             if debugging >= 2;
     }
@@ -196,8 +256,13 @@ sub _spool_data_to_child {
             if debugging >= 2;
     }
     else {
-        $fh = tempfile;
-        binmode $fh, $binmode_it ? ":raw" : ":crlf" if is_win32;
+        $fh = $fh_cache{in} ||= tempfile;
+        truncate $fh, 0;
+        seek $fh, 0, 0;
+        if ( is_win32 ) {
+            binmode $fh, ":raw"; ## Remove any previous layers
+            binmode $fh, ":crlf" unless $binmode_it;
+        }
         my $seekit;
         if ( $type eq "SCALAR" ) {
 
@@ -209,7 +274,9 @@ sub _spool_data_to_child {
             return $fh unless defined $$source;  ## \undef passed
 
             warn "run3(): feeding SCALAR to child STDIN",
-                debugging >= 3 ? ( ": '", $$source, "'" ) : (),
+                debugging >= 3
+                   ? ( ": '", $$source, "' (", length $$source, " chars)" )
+                   : (),
                 "\n"
                 if debugging >= 2;
 
@@ -239,7 +306,7 @@ sub _spool_data_to_child {
         }
 
         seek $fh, 0, 0 or croak "$! seeking on temp file for child's stdin"
-            if $seekit;;
+            if $seekit;
     }
 
     croak "run3() can't redirect $type to child stdin"
@@ -252,27 +319,18 @@ sub _spool_data_to_child {
 sub _fh_for_child_output {
     my ( $what, $type, $dest, $binmode_it ) = @_;
 
+    my $fh;
     if ( $type eq "SCALAR" && $dest == \undef ) {
         warn "run3(): redirecting child $what to oblivion\n"
             if debugging >= 2;
 
-        if ( is_win32 ) {
-            $type = "";
-            $dest = "NUL:";
-        }
-        elsif ( -e "/dev/null" ) {
-            $type = "";
-            $dest = "/dev/null";
-        }
-        else {
-            use File::Spec;
-            $type = "";
-            $dest = File::Spec->devnull;
-        }
+        $fh = $fh_cache{nul} ||= do {
+            local *FH;
+            open FH, ">" . File::Spec->devnull;
+            *FH{IO};
+        };
     }
-
-    my $fh;
-    if ( !$type ) {
+    elsif ( !$type ) {
         warn "run3(): feeding child $what to file '$dest'\n"
             if debugging >= 2;
 
@@ -284,12 +342,15 @@ sub _fh_for_child_output {
         warn "run3(): capturing child $what\n"
             if debugging >= 2;
 
-        $fh = tempfile;
+        $fh = $fh_cache{$what} ||= tempfile;
+        seek $fh, 0, 0;
+        truncate $fh, 0;
     }
 
     if ( is_win32 ) {
-        warn "binmode()ing $what\n" if $binmode_it;
-        binmode $fh, $binmode_it ? ":raw" : ":crlf";
+        warn "binmode()ing $what\n" if debugging && $binmode_it;
+        binmode $fh, ":raw";
+        binmode $fh, ":crlf" unless $binmode_it;
     }
     return $fh;
 }
@@ -298,20 +359,19 @@ sub _fh_for_child_output {
 sub _read_child_output_fh {
     my ( $what, $type, $dest, $fh, $options ) = @_;
 
-    return if $type eq "SCALAR" && ! defined $dest == \undef;
+    return if $type eq "SCALAR" && $dest == \undef;
 
-    seek $fh, 0, 0 or croak "$! seeking on temp file for child output";
+    seek $fh, 0, 0 or croak "$! seeking on temp file for child $what";
 
     if ( $type eq "SCALAR" ) {
-        warn "run3(): capturing child $what to SCALAR\n"
+        warn "run3(): reading child $what to SCALAR\n"
             if debugging >= 3;
 
-        $$dest = "";
         ## two read()s are used instead of 1 so that the first will be
         ## logged even it reads 0 bytes; the second won't.
-        my $count = read $fh, $$dest, 10_000, length $$dest;
+        my $count = read $fh, $$dest, 10_000;
         while (1) {
-            croak "$! reading child output from temp file"
+            croak "$! reading child $what from temp file"
                 unless defined $count;
 
             last unless $count;
@@ -334,14 +394,14 @@ sub _read_child_output_fh {
                 scalar @$dest,
                 " records, $count bytes from child $what",
                 debugging >= 3 ? ( ": '", @$dest, "'" ) : (),
-                "\n"
-                if debugging >= 2;
+                "\n";
         }
     }
     elsif ( $type eq "CODE" ) {
         warn "run3(): capturing child $what to CODE ref\n"
             if debugging >= 3;
 
+        local $_;
         while ( <$fh> ) {
             warn
                 "run3(): read ",
@@ -355,10 +415,10 @@ sub _read_child_output_fh {
         }
     }
     else {
-        croak "run3() can't redirect child output to a $type";
+        croak "run3() can't redirect child $what to a $type";
     }
 
-    close $fh;
+#    close $fh;
 }
 
 
@@ -376,8 +436,13 @@ sub _max_fd {
     return $fd;
 }
 
+my $run_call_time;
+my $sys_call_time;
+my $sys_exit_time;
 
 sub run3 {
+    $run_call_time = gettimeofday() if profiling;
+
     my $options = @_ && ref $_[-1] eq "HASH" ? pop : {};
 
     my ( $cmd, $stdin, $stdout, $stderr ) = @_;
@@ -443,8 +508,8 @@ sub run3 {
             or croak "run3(): $! redirecting STDIN"
             if defined $in_fh;
 
-        close $in_fh or croak "$! closing STDIN temp file"
-            if ref $stdin;
+#        close $in_fh or croak "$! closing STDIN temp file"
+#            if ref $stdin;
 
         open STDOUT, ">&" . fileno $out_fh
             or croak "run3(): $! redirecting STDOUT"
@@ -454,17 +519,22 @@ sub run3 {
             or croak "run3(): $! redirecting STDERR"
             if defined $err_fh;
 
+        $sys_call_time = gettimeofday() if profiling;
+
         my $r = ref $cmd
            ? system {$cmd->[0]}
                    is_win32
                        ? map {
                            ## Probably need to offer a win32 escaping
-                           ## option, every command is different.
+                           ## option, every command may be different.
                            ( my $s = $_ ) =~ s/"/"""/g;
+                           $s = qq{"$s"};
                            $s;
                        } @$cmd
                        : @$cmd
            : system $cmd;
+
+        $sys_exit_time = gettimeofday() if profiling;
 
         unless ( defined $r ) {
             if ( debugging ) {
@@ -504,8 +574,104 @@ sub run3 {
         if defined $out_fh && $out_type && $out_type ne "FH";
     _read_child_output_fh "stderr", $err_type, $stderr, $err_fh, $options
         if defined $err_fh && $err_type && $err_type ne "FH" && !$tie_err_to_out;
+    $profiler->run_exit(
+       $cmd,
+       $run_call_time,
+       $sys_call_time,
+       $sys_exit_time,
+       scalar gettimeofday 
+    ) if profiling;
+
     return 1;
 }
+
+=for foo
+
+this is what a pretty well optimized version of the above looks like.
+It's about 56% lower overhead than the above, but that pales in
+comparison to the time spent in system().
+
+Using perl -e1 as the test program, this version reduced the overall time
+from 9 to 7.6 seconds for 1000 iterations, about 1.4 seconds or 15%.  The
+overhead time (time in run3()) went from 2.5 to 1.1 seconds, or 56%.
+
+my $in_fh;
+my $in_fd;
+my $out_fh;
+my $out_fd;
+my $err_fh;
+my $err_fd;
+        $in_fh = tempfile;
+        $in_fd = fileno $in_fh;
+        $out_fh = tempfile;
+        $out_fd = fileno $out_fh;
+        $err_fh = tempfile;
+        $err_fd = fileno $err_fh;
+    my $saved_fd0 = dup 0;
+    my $saved_fd1 = dup 1;
+    my $saved_fd2 = dup 2;
+    my $r;
+    my ( $cmd, $stdin, $stdout, $stderr );
+
+sub _run3 {
+    ( $cmd, $stdin, $stdout, $stderr ) = @_;
+
+    truncate $in_fh, 0;
+    seek $in_fh, 0, 0;
+
+    print $in_fh $$stdin or die "$! writing to temp file";
+    seek $in_fh, 0, 0;
+
+    seek $out_fh, 0, 0;
+    truncate $out_fh, 0;
+
+    seek $err_fh, 0, 0;
+    truncate $err_fh, 0;
+
+    dup2 $in_fd,  0 or croak "run3(): $! redirecting STDIN";
+    dup2 $out_fd, 1 or croak "run3(): $! redirecting STDOUT";
+    dup2 $err_fd, 2 or croak "run3(): $! redirecting STDERR";
+
+    $r = 
+       system {$cmd->[0]}
+               is_win32
+                   ? map {
+                       ## Probably need to offer a win32 escaping
+                       ## option, every command is different.
+                       ( my $s = $_ ) =~ s/"/"""/g;
+                       $s;
+                   } @$cmd
+                   : @$cmd;
+
+    die $! unless defined $r;
+
+    dup2 $saved_fd0, 0;
+    dup2 $saved_fd1, 1;
+    dup2 $saved_fd2, 2;
+
+    seek $out_fh, 0, 0 or croak "$! seeking on temp file for child output";
+
+        my $count = read $out_fh, $$stdout, 10_000;
+        while ( $count == 10_000 ) {
+            $count = read $out_fh, $$stdout, 10_000, length $$stdout;
+        }
+        croak "$! reading child output from temp file"
+            unless defined $count;
+
+    seek $err_fh, 0, 0 or croak "$! seeking on temp file for child errput";
+
+        my $count = read $err_fh, $$stderr, 10_000;
+        while ( $count == 10_000 ) {
+            $count = read $err_fh, $$stderr, 10_000, length $$stdout;
+        }
+        croak "$! reading child stderr from temp file"
+            unless defined $count;
+
+    return 1;
+}
+
+=cut
+
 
 =head1 TODO
 

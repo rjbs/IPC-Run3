@@ -65,7 +65,7 @@ sub {
 
 sub {
     ( $in, $out, $err ) = ();
-    run3 [$^X, '-e', 'binmode STDIN; print map length($_)."[$_]", <>' ],
+    run3 [$^X, '-e', 'binmode STDIN; binmode STDOUT; print map length($_)."[$_]", <>' ],
         \"in1\nin2", \$out,
         { binmode_stdin => 1 };
     ok $out, "4[in1\n]3[in2]";
@@ -73,9 +73,9 @@ sub {
 
 sub {
     ( $in, $out, $err ) = ();
-    run3 [$^X, '-e', 'binmode STDIN; print map length($_)."[$_]", <>' ],
+    run3 [$^X, '-e', 'binmode STDIN; binmode STDOUT; print map length($_)."[$_]", <>' ],
         \"in1\r\nin2", \$out,
-        { binmode_stdin => 1 };
+        { binmode_stdin => 1, binmode_stdout => 1 };
     ok $out, "5[in1\r\n]3[in2]";
 },
 
