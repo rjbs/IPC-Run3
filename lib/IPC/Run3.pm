@@ -1,6 +1,6 @@
 package IPC::Run3;
 
-$VERSION = 0.009;
+$VERSION = 0.010;
 
 =head1 NAME
 
@@ -79,85 +79,59 @@ Here's how it stacks up to existing APIs:
 
 =over
 
-=item system(), qx'', open "...|", open "|..."
+=item compared to system(), qx'', open "...|", open "|...":
 
 =over
 
-=item +
+=item + redirects more than one file descriptor
 
-redirects more that one file descriptor
+=item + returns TRUE on success, FALSE on failure
 
-=item +
-
-returns TRUE on success, FALSE on failure
-
-=item +
-
-throws an error if problems occur in the parent process (or the
+=item + throws an error if problems occur in the parent process (or the
 pre-exec child)
 
-=item +
+=item + allows a very perlish interface to perl data structures and
+subroutines
 
-allows a very perlish interface to perl data structures
+=item + allows 1 word invocations to avoid the shell easily:
 
-=item +
+    run3 ["foo"];  ## does not invoke shell
 
-allows 1 word invocations to avoid the shell easily.
-
-=item -
-
-leaves the result in $?
+=item - does not return the exit code, leaves it in $?
 
 =back
 
-=item open2(), open3()
+=item compared to open2(), open3():
 
 =over
 
-=item +
+=item + No lengthy, error prone polling / select loop needed
 
-No need to risk a deadlock or avoid it with a length select() loop
+=item + Hides OS dependancies
 
-=item +
+=item + Allows SCALAR, ARRAY, and CODE references to source and sink I/O
 
-Hides OS dependancies
+=item + I/O parameter order is like open3()  (not like open2()).
 
-=item +
-
-Parameter order is like open3()  (not like open2()).
-
-=item +
-
-Synchronizes with the child process so you get an exception if the
-child process fails to run.
+=item - Does not allow interaction with the subprocess
 
 =back
 
-=item IPC::Run::run()
+=item compared to IPC::Run::run():
 
 =over
 
-=item +
+=item + Smaller, lower overhead, simpler, more portable
 
-Smaller, lower overhead, simpler, more portable
+=item + No select() loop portability issues
 
-=item +
+=item + Does not fall prey to Perl closure leaks
 
-No select() loop 
+=item - Does not allow interaction with the subprocess (which
+IPC::Run::run() allows by redirecting subroutines).
 
-=item +
-
-Does not fall prey to Perl closure leaks
-
-=item -
-
-Does not allow interaction with the subprocess (which IPC::Run::run()
-allows by redirecting subroutines).
-
-=item -
-
-Lacks many features of IPC::Run::run() (filters, pipes, redirects, pty
-support).
+=item - Lacks many features of IPC::Run::run() (filters, pipes,
+redirects, pty support).
 
 =back
 
@@ -585,16 +559,6 @@ sub run3 {
     return 1;
 }
 
-=for foo
-
-this is what a pretty well optimized version of the above looks like.
-It's about 56% lower overhead than the above, but that pales in
-comparison to the time spent in system().
-
-Using perl -e1 as the test program, this version reduced the overall time
-from 9 to 7.6 seconds for 1000 iterations, about 1.4 seconds or 15%.  The
-overhead time (time in run3()) went from 2.5 to 1.1 seconds, or 56%.
-
 my $in_fh;
 my $in_fd;
 my $out_fh;
@@ -639,6 +603,7 @@ sub _run3 {
                        ## Probably need to offer a win32 escaping
                        ## option, every command is different.
                        ( my $s = $_ ) =~ s/"/"""/g;
+                       $s = q{"$s"} if /[^\w.:\/\\'-]/;
                        $s;
                    } @$cmd
                    : @$cmd;
@@ -660,7 +625,7 @@ sub _run3 {
 
     seek $err_fh, 0, 0 or croak "$! seeking on temp file for child errput";
 
-        my $count = read $err_fh, $$stderr, 10_000;
+        $count = read $err_fh, $$stderr, 10_000;
         while ( $count == 10_000 ) {
             $count = read $err_fh, $$stderr, 10_000, length $$stdout;
         }

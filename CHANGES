@@ -1,5 +1,9 @@
 CHANGES file for IPC::Run3
 
+0.010 Tue Mar  9 01:46:11 EST 2004
+    - POD cleaned up
+    - shell quoting improved for win32 
+
 0.009 Fri Sep 26 15:44:18 EDT 2003
     - CRLF bugs fixed on WinNT, WinXP, Win2K
     - 0.008 slipped out without an update to this file.
