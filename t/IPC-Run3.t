@@ -1,8 +1,19 @@
-use Test;
+use Test qw( plan );
 use IPC::Run3;
 use strict;
 
 my ( $in, $out, $err ) = @_;
+
+my %e = (
+    map( { chr $_ => sprintf( "\\0x%02d", $_ ) } (0..255) ),
+    "\n" => "\\n",
+    "\r" => "\\r",
+);
+
+sub ok {
+    @_ = map { ( my $s = $_ ) =~ s/([\000-\037])/$e{$1}/ge; $s } @_;
+    goto &Test::ok;
+}
 
 my @tests = (
 sub {
@@ -48,8 +59,24 @@ sub {
 
 sub {
     ( $in, $out, $err ) = ();
-    run3 [$^X, '-e', 'print map ".".uc, <>' ], \"in1\nin2", \$out;
-    ok $out, ".IN1\n.IN2";
+    run3 [$^X, '-e', 'print map length($_)."[$_]", <>' ], \"in1\nin2", \$out;
+    ok $out, "4[in1\n]3[in2]";
+},
+
+sub {
+    ( $in, $out, $err ) = ();
+    run3 [$^X, '-e', 'binmode STDIN; print map length($_)."[$_]", <>' ],
+        \"in1\nin2", \$out,
+        { binmode_stdin => 1 };
+    ok $out, "4[in1\n]3[in2]";
+},
+
+sub {
+    ( $in, $out, $err ) = ();
+    run3 [$^X, '-e', 'binmode STDIN; print map length($_)."[$_]", <>' ],
+        \"in1\r\nin2", \$out,
+        { binmode_stdin => 1 };
+    ok $out, "5[in1\r\n]3[in2]";
 },
 
 sub {
@@ -62,8 +89,9 @@ sub {
 sub {
     ( $in, $out, $err ) = ();
     my @in = qw( in1 in2 );
-    run3 [$^X, '-e', '$|=1; for (<>){print uc;print STDERR lc}' ],
-        \"in1\nin2\n", \$out,\$out;
+    run3 [$^X, '-e',
+        '$|=1; select STDERR; $| = 1; for (<>){print STDOUT uc;print STDERR lc}'
+    ], \"in1\nin2\n", \$out,\$out;
     ok $out, "IN1\nin1\nIN2\nin2\n";
 },
 
@@ -75,6 +103,7 @@ sub {
     run3 [$^X, '-e', 'print "OUT"' ], \undef, $fn;
     ok -s $fn, 3;
 },
+
 );
 
 plan tests => 0+@tests;

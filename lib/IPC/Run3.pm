@@ -1,6 +1,6 @@
 package IPC::Run3;
 
-$VERSION = 0.005;
+$VERSION = 0.006;
 
 =head1 NAME
 
@@ -10,6 +10,9 @@ IPC::Run3 - Run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 
     use IPC::Run3;    ## Exports run3() by default
     use IPC::Run3 (); ## Don't pollute
+
+    run3 \@cmd, \$in, \$out, \$err;
+    run3 \@cmd, \@in, \&out, \$err;
 
 =head1 DESCRIPTION
 
@@ -25,9 +28,9 @@ is not.
 
 Note that passing in \undef explicitly redirects the associated file
 descriptor for STDIN, STDOUT, or STDERR from or to the local equivalent
-of /dev/null.  Passing in "undef" (or not passing a redirection) allows
-the child to inherit the corresponding STDIN, STDOUT, or STDERR from the
-parent.
+of /dev/null (this does I<not> pass a closed filehandle).  Passing in
+"undef" (or not passing a redirection) allows the child to inherit the
+corresponding STDIN, STDOUT, or STDERR from the parent.
 
 Because the redirects come last, this allows STDOUT and STDERR to
 default to the parent's by just not specifying them; a common use
@@ -35,22 +38,23 @@ case.
 
 B<Note>: This means that:
 
-    run \@cmd, undef, \$out;   ## Pass on parent's STDIN
+    run3 \@cmd, undef, \$out;   ## Pass on parent's STDIN
 
 B<does not close the child's STDIN>, it passes on the parent's.  Use
 
-    run \@cmd, \undef, \$out;  ## Close child's STDIN
+    run3 \@cmd, \undef, \$out;  ## Close child's STDIN
 
-for that.
+for that.  It's not ideal, but it does work.
 
 If the exact same value is passed for $stdout and $stderr, then
 the child will write both to the same filehandle.  In general, this
 means that
 
-    run \@cmd, \undef, "foo.txt", "foo.txt";
-    run \@cmd, \undef, \$out, \$out;
+    run3 \@cmd, \undef, "foo.txt", "foo.txt";
+    run3 \@cmd, \undef, \$both, \$both;
 
-will DWYM and only require one set of reads.
+will DWYM and pass a single file handle to the child for both
+STDOUT and STDERR, collecting all into $both.
 
 =head1 DEBUGGING
 
@@ -160,10 +164,11 @@ use Exporter;
 
 use strict;
 use constant debugging => $ENV{IPCRUN3DEBUG} || $ENV{IPCRUNDEBUG} || 0;
+use constant is_win32  => 0 <= index $^O, "Win32";
+
 use Carp qw( croak );
 use File::Temp qw( tempfile );
 use UNIVERSAL qw( isa );
-use IPC::Open3;
 use POSIX qw( dup dup2 );
 
 use strict;
@@ -174,13 +179,14 @@ sub _spool {
     ## If undef (not \undef) passed, they want the child to inherit
     ## the parent's STDIN.
     return undef unless defined $source;
+    warn "binmode()ing STDIN\n" if is_win32 && debugging && $binmode_it;
 
     my $fh;
     if ( ! $type ) {
         local *FH;  ## Do this the backcompat way
         open FH, "<$source" or croak "$!: $source";
         $fh = *FH{IO};
-        binmode $fh if $binmode_it;
+        binmode $fh, $binmode_it ? ":raw" : ":crlf" if is_win32;
         warn "run3(): feeding file '$source' to child STDIN\n"
             if debugging >= 2;
     }
@@ -191,7 +197,7 @@ sub _spool {
     }
     else {
         $fh = tempfile;
-        binmode $fh if $binmode_it;
+        binmode $fh, $binmode_it ? ":raw" : ":crlf" if is_win32;
         my $seekit;
         if ( $type eq "SCALAR" ) {
 
@@ -250,14 +256,18 @@ sub _fh_for_child_output {
         warn "run3(): redirecting child $what to oblivion\n"
             if debugging >= 2;
 
-        if ( -e "/dev/null" ) {
+        if ( is_win32 ) {
+            $type = "";
+            $dest = "NUL:";
+        }
+        elsif ( -e "/dev/null" ) {
             $type = "";
             $dest = "/dev/null";
         }
-        elsif ( 0 <= index $^O, "Win32" ) {
-            # NOTE: untested
+        else {
+            use File::Spec;
             $type = "";
-            $dest = "NUL:";
+            $dest = File::Spec->devnull;
         }
     }
 
@@ -277,7 +287,10 @@ sub _fh_for_child_output {
         $fh = tempfile;
     }
 
-    binmode $fh if $binmode_it;
+    if ( is_win32 ) {
+        warn "binmode()ing $what\n" if $binmode_it;
+        binmode $fh, $binmode_it ? ":raw" : ":crlf";
+    }
     return $fh;
 }
 
@@ -351,10 +364,16 @@ sub _read_spool {
 
 sub _type {
     my ( $redir ) = @_;
+    return "FH" if isa $redir, "IO::Handle";
     my $type = ref $redir;
-    return $type eq "GLOB" || isa( $redir, "IO::Handle" )
-        ? "FH"
-        : $type;
+    return $type eq "GLOB" ? "FH" : $type;
+}
+
+
+sub _max_fd {
+    my $fd = dup(0);
+    POSIX::close $fd;
+    return $fd;
 }
 
 
@@ -362,6 +381,11 @@ sub run3 {
     my $options = @_ && ref $_[-1] eq "HASH" ? pop : {};
 
     my ( $cmd, $stdin, $stdout, $stderr ) = @_;
+
+    print STDERR "run3(): running ", 
+       join( " ", map "'$_'", ref $cmd ? @$cmd : $cmd ), 
+       "\n"
+       if debugging;
 
     if ( ref $cmd ) {
         croak "run3(): empty command"     unless @$cmd;
@@ -373,11 +397,6 @@ sub run3 {
         croak "run3(): undefined command" unless defined $cmd;
         croak "run3(): command ('')" unless length  $cmd;
     }
-
-    warn "run3(): running ", 
-       join( " ", map "'$_'", ref $cmd ? @$cmd : $cmd ), 
-       "\n"
-       if debugging;
 
     my $in_type  = _type $stdin;
     my $out_type = _type $stdout;
@@ -406,7 +425,7 @@ sub run3 {
     local *STDOUT_SAVE;
     local *STDERR_SAVE;
 
-    my $saved_fd0 = dup( 0 );
+    my $saved_fd0 = dup( 0 ) if defined $in_fh;
 
 #    open STDIN_SAVE,  "<&STDIN"#  or croak "run3(): $! saving STDIN"
 #        if defined $in_fh;
@@ -432,21 +451,40 @@ sub run3 {
             or croak "run3(): $! redirecting STDERR"
             if defined $err_fh;
 
-        my $r = ref $cmd ? system {$cmd->[0]} @$cmd : system $cmd;
+        my $r = ref $cmd
+           ? system {$cmd->[0]}
+                   is_win32
+                       ? map {
+                           ## Probably need to offer a win32 escaping
+                           ## option, every command is different.
+                           ( my $s = $_ ) =~ s/"/"""/g;
+                           $s;
+                       } @$cmd
+                       : @$cmd
+           : system $cmd;
+
         unless ( defined $r ) {
-            print STDERR_SAVE "run3(): system() error $!\n"
-                if debugging;
+            if ( debugging ) {
+                my $err_fh = defined $err_fh ? \*STDERR_SAVE : \*STDERR;
+                print $err_fh "run3(): system() error $!\n"
+            }
             die $!;
         }
-        print STDERR_SAVE "run3(): \$? is $?\n"
-            if debugging;
+
+        if ( debugging ) {
+            my $err_fh = defined $err_fh ? \*STDERR_SAVE : \*STDERR;
+            print $err_fh "run3(): \$? is $?\n"
+        }
         1;
     };
     my $x = $@;
 
     my @errs;
 
-    dup2( $saved_fd0, 0 ) if defined $saved_fd0;
+    if ( defined $saved_fd0 ) {
+        dup2( $saved_fd0, 0 );
+        POSIX::close( $saved_fd0 );
+    }
 
 #    open STDIN,  "<&STDIN_SAVE"#  or push @errs, "run3(): $! restoring STDIN"
 #        if defined $in_fh;
@@ -463,7 +501,6 @@ sub run3 {
         if defined $out_fh && $out_type && $out_type ne "FH";
     _read_spool "stderr", $err_type, $stderr, $err_fh, $options
         if defined $err_fh && $err_type && $err_type ne "FH" && !$tie_err_to_out;
-
     return 1;
 }
 

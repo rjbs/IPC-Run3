@@ -1,5 +1,9 @@
 Changes file for IPC::Run3
 
+0.006 Fri Mar 21 12:07:47 EST 2003
+    - Port to Win32
+    - Test for and eliminate an fd leak on Unix
+
 0.005 Tue Feb 25 15:11:47 EST 2003
     - Fixed a few bugs in dealing with temp files and non-temp files
 
