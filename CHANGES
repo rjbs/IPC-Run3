@@ -1,0 +1,12 @@
+Changes file for IPC::Run3
+
+0.005 Tue Feb 25 15:11:47 EST 2003
+    - Fixed a few bugs in dealing with temp files and non-temp files
+
+0.003 Tue Feb 11 15:47:59 EST 2003
+    - use dup2() to overwrite STDIN for the child
+    - Added $ENV{IPCRUN3DEBUG} (and, silently, IPCRUNDEBUG) 
+      debugging support.  TODO: Add more debugging warnings.
+
+0.000_1 Tue Feb  4 15:09:30 2003
+    - Created
