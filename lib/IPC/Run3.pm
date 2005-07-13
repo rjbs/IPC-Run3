@@ -1,15 +1,20 @@
 package IPC::Run3;
 
-$VERSION = 0.010;
-
 =head1 NAME
 
-IPC::Run3 - Run a subprocess in batch mode (a la system) on Unix, Win32, etc.
+IPC::Run3 - run a subprocess in batch mode (a la system) on Unix, Win32, etc.
+
+=head1 VERSION
+
+version 0.020
+
+=cut
+
+$VERSION = '0.020';
 
 =head1 SYNOPSIS
 
-    use IPC::Run3;    ## Exports run3() by default
-    use IPC::Run3 (); ## Don't pollute
+    use IPC::Run3;    # Exports run3() by default
 
     run3 \@cmd, \$in, \$out, \$err;
     run3 \@cmd, \@in, \&out, \$err;
@@ -17,44 +22,41 @@ IPC::Run3 - Run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 =head1 DESCRIPTION
 
 This module allows you to run a subprocess and redirect stdin, stdout,
-and/or stderr to files and perl data structures.  It aims to satisfy 99%
-of the need for using system()/qx``/open3() with a simple, extremely
-Perlish API and none of the bloat and rarely used features of IPC::Run.
+and/or stderr to files and perl data structures.  It aims to satisfy 99% of the
+need for using C<system>, C<qx>, and C<open3> with a simple, extremely Perlish
+API and none of the bloat and rarely used features of IPC::Run.
 
-Speed (of Perl code; which is often much slower than the kind of
-buffered I/O that this module uses to spool input to and output from the
-child command), simplicity, and portability are paramount.  Disk space
-is not.
+Speed, simplicity, and portability are paramount.  (That's speed of Perl code;
+which is often much slower than the kind of buffered I/O that this module uses
+to spool input to and output from the child command.) Disk space is not.
 
-Note that passing in \undef explicitly redirects the associated file
-descriptor for STDIN, STDOUT, or STDERR from or to the local equivalent
-of /dev/null (this does I<not> pass a closed filehandle).  Passing in
-"undef" (or not passing a redirection) allows the child to inherit the
-corresponding STDIN, STDOUT, or STDERR from the parent.
+Note that passing in a reference to C<undef> explicitly redirects the
+associated file descriptor for C<STDIN>, C<STDOUT>, or C<STDERR> from or to the
+local equivalent of C</dev/null> (this does I<not> pass a closed filehandle).
+Passing in C<undef> (or not passing a redirection) allows the child to inherit
+the corresponding C<STDIN>, C<STDOUT>, or C<STDERR> from the parent.
 
-Because the redirects come last, this allows STDOUT and STDERR to
-default to the parent's by just not specifying them; a common use
-case.
+Because the redirects come last, this allows C<STDOUT> and C<STDERR> to default
+to the parent's by just not specifying them -- a common use case.
 
 B<Note>: This means that:
 
-    run3 \@cmd, undef, \$out;   ## Pass on parent's STDIN
+    run3 \@cmd, undef, \$out;   # Pass on parent's STDIN
 
 B<does not close the child's STDIN>, it passes on the parent's.  Use
 
-    run3 \@cmd, \undef, \$out;  ## Close child's STDIN
+    run3 \@cmd, \undef, \$out;  # Close child's STDIN
 
 for that.  It's not ideal, but it does work.
 
-If the exact same value is passed for $stdout and $stderr, then
-the child will write both to the same filehandle.  In general, this
-means that
+If the exact same value is passed for C<$stdout> and C<$stderr>, then the child
+will write both to the same filehandle.  In general, this means that
 
     run3 \@cmd, \undef, "foo.txt", "foo.txt";
     run3 \@cmd, \undef, \$both, \$both;
 
-will DWYM and pass a single file handle to the child for both
-STDOUT and STDERR, collecting all into $both.
+will DWYM and pass a single file handle to the child for both C<STDOUT> and
+C<STDERR>, collecting all into C<$both>.
 
 =head1 DEBUGGING
 
@@ -63,14 +65,11 @@ a non-zero integer value:
 
     $ IPCRUN3DEBUG=1 myapp
 
-.
-
 =head1 PROFILING
 
-To enable profiling, set IPCRUN3PROFILE to a number to enable
-emitting profile information to STDERR (1 to get timestamps,
-2 to get a summary report at the END of the program,
-3 to get mini reports after each run) or to a filename to
+To enable profiling, set IPCRUN3PROFILE to a number to enable emitting profile
+information to STDERR (1 to get timestamps, 2 to get a summary report at the
+END of the program, 3 to get mini reports after each run) or to a filename to
 emit raw data to a file for later analysis.
 
 =head1 COMPARISON
@@ -90,12 +89,11 @@ Here's how it stacks up to existing APIs:
 =item + throws an error if problems occur in the parent process (or the
 pre-exec child)
 
-=item + allows a very perlish interface to perl data structures and
-subroutines
+=item + allows a very perlish interface to perl data structures and subroutines
 
 =item + allows 1 word invocations to avoid the shell easily:
 
-    run3 ["foo"];  ## does not invoke shell
+    run3 ["foo"];  # does not invoke shell
 
 =item - does not return the exit code, leaves it in $?
 
@@ -163,19 +161,20 @@ use File::Temp qw( tempfile );
 use UNIVERSAL qw( isa );
 use POSIX qw( dup dup2 );
 
-## We cache the handles of our temp files in order to
-## keep from having to incur the (largish) overhead of File::Temp
+# We cache the handles of our temp files in order to
+# keep from having to incur the (largish) overhead of File::Temp
 my %fh_cache;
 
 my $profiler;
 
-sub _profiler { $profiler } ## test suite access
+sub _profiler { $profiler } # test suite access
 
 BEGIN {
     if ( profiling ) {
         eval "use Time::HiRes qw( gettimeofday ); 1" or die $@;
         if ( $ENV{IPCRUN3PROFILE} =~ /\A\d+\z/ ) {
             require IPC::Run3::ProfPP;
+            IPC::Run3::ProfPP->import;
             $profiler = IPC::Run3::ProfPP->new(
                 Level => $ENV{IPCRUN3PROFILE},
             );
@@ -207,18 +206,18 @@ END {
 sub _spool_data_to_child {
     my ( $type, $source, $binmode_it ) = @_;
 
-    ## If undef (not \undef) passed, they want the child to inherit
-    ## the parent's STDIN.
+    # If undef (not \undef) passed, they want the child to inherit
+    # the parent's STDIN.
     return undef unless defined $source;
     warn "binmode()ing STDIN\n" if is_win32 && debugging && $binmode_it;
 
     my $fh;
     if ( ! $type ) {
-        local *FH;  ## Do this the backcompat way
+        local *FH;  # Do this the backcompat way
         open FH, "<$source" or croak "$!: $source";
         $fh = *FH{IO};
         if ( is_win32 ) {
-            binmode ":raw"; ## Remove all layers
+            binmode ":raw"; # Remove all layers
             binmode ":crlf" unless $binmode_it;
         }
         warn "run3(): feeding file '$source' to child STDIN\n"
@@ -234,18 +233,18 @@ sub _spool_data_to_child {
         truncate $fh, 0;
         seek $fh, 0, 0;
         if ( is_win32 ) {
-            binmode $fh, ":raw"; ## Remove any previous layers
+            binmode $fh, ":raw"; # Remove any previous layers
             binmode $fh, ":crlf" unless $binmode_it;
         }
         my $seekit;
         if ( $type eq "SCALAR" ) {
 
-            ## When the run3()'s caller asks to feed an empty file
-            ## to the child's stdin, we want to pass a live file
-            ## descriptor to an empty file (like /dev/null) so that
-            ## they don't get surprised by invalid fd errors and get
-            ## normal EOF behaviors.
-            return $fh unless defined $$source;  ## \undef passed
+            # When the run3()'s caller asks to feed an empty file
+            # to the child's stdin, we want to pass a live file
+            # descriptor to an empty file (like /dev/null) so that
+            # they don't get surprised by invalid fd errors and get
+            # normal EOF behaviors.
+            return $fh unless defined $$source;  # \undef passed
 
             warn "run3(): feeding SCALAR to child STDIN",
                 debugging >= 3
@@ -270,7 +269,7 @@ sub _spool_data_to_child {
         elsif ( $type eq "CODE" ) {
             warn "run3(): feeding output of CODE ref '$source' to child STDIN\n"
                 if debugging >= 2;
-            my $parms = [];  ## TODO: get these from $options
+            my $parms = [];  # TODO: get these from $options
             while (1) {
                 my $data = $source->( @$parms );
                 last unless defined $data;
@@ -303,6 +302,11 @@ sub _fh_for_child_output {
             open FH, ">" . File::Spec->devnull;
             *FH{IO};
         };
+    }
+    elsif ( $type eq "FH" ) {
+        $fh = $dest;
+        warn "run3(): redirecting $what to filehandle '$dest'\n"
+            if debugging >= 3;
     }
     elsif ( !$type ) {
         warn "run3(): feeding child $what to file '$dest'\n"
@@ -341,8 +345,8 @@ sub _read_child_output_fh {
         warn "run3(): reading child $what to SCALAR\n"
             if debugging >= 3;
 
-        ## two read()s are used instead of 1 so that the first will be
-        ## logged even it reads 0 bytes; the second won't.
+        # two read()s are used instead of 1 so that the first will be
+        # logged even it reads 0 bytes; the second won't.
         my $count = read $fh, $$dest, 10_000;
         while (1) {
             croak "$! reading child $what from temp file"
@@ -441,9 +445,9 @@ sub run3 {
     my $out_type = _type $stdout;
     my $err_type = _type $stderr;
 
-    ## This routine procedes in stages so that a failure in an early
-    ## stage prevents later stages from running, and thus from needing
-    ## cleanup.
+    # This routine procedes in stages so that a failure in an early
+    # stage prevents later stages from running, and thus from needing
+    # cleanup.
 
     my $in_fh  = _spool_data_to_child $in_type, $stdin,
         $options->{binmode_stdin} if defined $stdin;
@@ -459,7 +463,7 @@ sub run3 {
         : _fh_for_child_output "stderr", $err_type, $stderr,
             $options->{binmode_stderr} if defined $stderr;
 
-    ## this should make perl close these on exceptions
+    # this should make perl close these on exceptions
     local *STDIN_SAVE;
     local *STDOUT_SAVE;
     local *STDERR_SAVE;
@@ -474,9 +478,9 @@ sub run3 {
         if defined $err_fh;
 
     my $ok = eval {
-        ## The open() call here seems to not force fd 0 in some cases;
-        ## I ran in to trouble when using this in VCP, not sure why.
-        ## the dup2() seems to work.
+        # The open() call here seems to not force fd 0 in some cases;
+        # I ran in to trouble when using this in VCP, not sure why.
+        # the dup2() seems to work.
         dup2( fileno $in_fh, 0 )
 #        open STDIN,  "<&=" . fileno $in_fh
             or croak "run3(): $! redirecting STDIN"
@@ -499,8 +503,8 @@ sub run3 {
            ? system {$cmd->[0]}
                    is_win32
                        ? map {
-                           ## Probably need to offer a win32 escaping
-                           ## option, every command may be different.
+                           # Probably need to offer a win32 escaping
+                           # option, every command may be different.
                            ( my $s = $_ ) =~ s/"/"""/g;
                            $s = qq{"$s"};
                            $s;
@@ -510,7 +514,7 @@ sub run3 {
 
         $sys_exit_time = gettimeofday() if profiling;
 
-        unless ( defined $r ) {
+        unless ( defined $r && $r != -1 ) {
             if ( debugging ) {
                 my $err_fh = defined $err_fh ? \*STDERR_SAVE : \*STDERR;
                 print $err_fh "run3(): system() error $!\n"
@@ -553,7 +557,7 @@ sub run3 {
        $run_call_time,
        $sys_call_time,
        $sys_exit_time,
-       scalar gettimeofday 
+       scalar gettimeofday() 
     ) if profiling;
 
     return 1;
@@ -600,8 +604,8 @@ sub _run3 {
        system {$cmd->[0]}
                is_win32
                    ? map {
-                       ## Probably need to offer a win32 escaping
-                       ## option, every command is different.
+                       # Probably need to offer a win32 escaping
+                       # option, every command is different.
                        ( my $s = $_ ) =~ s/"/"""/g;
                        $s = q{"$s"} if /[^\w.:\/\\'-]/;
                        $s;
@@ -650,7 +654,7 @@ simplicity.
 
 =head1 COPYRIGHT
 
-    Copyright 2003, R. Barrie Slaymaker, Jr., All Rights Reserved
+Copyright 2003, R. Barrie Slaymaker, Jr., All Rights Reserved
 
 =head1 LICENSE
 
@@ -659,7 +663,11 @@ any version.
 
 =head1 AUTHOR
 
-Barrie Slaymaker <barries@slaysys.com>
+Barrie Slaymaker E<lt>C<barries@slaysys.com>E<gt>
+
+Ricardo SIGNES E<lt>C<rjbs@cpan.org>E<gt> performed some routine maintenance in
+2005, thanks to help from the following ticket and/or patch submitters: Jody
+Belka, Roderich Schupp, David Morel, and anonymous others.
 
 =cut
 

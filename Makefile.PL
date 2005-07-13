@@ -5,15 +5,7 @@ WriteMakefile(
     VERSION_FROM  => 'lib/IPC/Run3.pm',
     EXE_FILES     => [],
     PREREQ_PM => {
+      'Time::HiRes' => 1,
+      ($^O =~ /Win32/ ? (Win32 => 1) : ())
     },
 );
-
-
-sub MY::libscan {
-    package MY;
-    my $self = shift;
-    my ( $path ) = @_;
-    return '' if /\.sw[a-z]$/;
-    return '' unless length $self->SUPER::libscan( $path );
-    return $path;
-}

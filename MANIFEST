@@ -1,4 +1,4 @@
-CHANGES
+Changes
 MANIFEST
 MANIFEST.SKIP
 Makefile.PL
@@ -18,3 +18,4 @@ t/IPC-Run3-profiling.t
 t/IPC-Run3.t
 t/fd_leak.t
 t/test.txt
+META.yml                                 Module meta-data (added by MakeMaker)
