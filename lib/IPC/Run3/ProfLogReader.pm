@@ -1,23 +1,23 @@
 package IPC::Run3::ProfLogReader;
 
-$VERSION = 0.000_1;
+$VERSION = 0.030;
 
 =head1 NAME
 
-IPC::Run3::ProfLogReader -  Read an IPC::Run3::ProfLogger file and dispatch it
+IPC::Run3::ProfLogReader -  read and process a ProfLogger file
 
 =head1 SYNOPSIS
 
-    use IPC::Run3::ProfLogReader;
+ use IPC::Run3::ProfLogReader;
 
-    my $r = IPC::Run3::ProfLogReader->new; ## use "run3.out"
-    my $r = IPC::Run3::ProfLogReader->new( Source => $fn );
+ my $reader = IPC::Run3::ProfLogReader->new; ## use "run3.out"
+ my $reader = IPC::Run3::ProfLogReader->new( Source => $fn );
 
-    my $p = IPC::Run3::ProfPP;   ## For example
-    my $r = IPC::Run3::ProfLogReader->new( ..., Handler => $p );
+ my $profiler = IPC::Run3::ProfPP;   ## For example
+ my $reader   = IPC::Run3::ProfLogReader->new( ..., Handler => $p );
 
-    $r->read;
-    $r->read_all;
+ $reader->read;
+ $eaderr->read_all;
 
 =head1 DESCRIPTION
 
@@ -26,6 +26,13 @@ Reads a log file.  Use the filename "-" to read from STDIN.
 =cut
 
 use strict;
+use warnings;
+
+=head1 METHODS
+
+=head2 C<< IPC::Run3::ProfLogReader->new( ... ) >>
+
+=cut
 
 sub new {
     my $class = ref $_[0] ? ref shift : shift;
@@ -50,9 +57,21 @@ sub new {
 }
 
 
+=head2 C<< $reader->set_handler( $handler ) >>
+
+=cut
+
 sub set_handler { $_[0]->{Handler} = $_[1] }
 
+=head2 C<< $reader->get_handler() >>
+
+=cut
+
 sub get_handler { $_[0]->{Handler} }
+
+=head2 C<< $reader->read() >>
+
+=cut
 
 sub read {
     my $self = shift;
@@ -104,6 +123,12 @@ sub read {
 }
 
 
+=head2 C<< $reader->read_all() >>
+
+This method reads until there is nothing left to read, and then returns true.
+
+=cut
+
 sub read_all {
     my $self = shift;
 
@@ -126,7 +151,7 @@ any version.
 
 =head1 AUTHOR
 
-Barrie Slaymaker <barries@slaysys.com>
+Barrie Slaymaker E<lt>barries@slaysys.comE<gt>
 
 =cut
 

@@ -1,10 +1,10 @@
 package IPC::Run3::ProfArrayBuffer;
 
-$VERSION = 0.000_1;
+$VERSION = 0.030;
 
 =head1 NAME
 
-IPC::Run3::ProfArrayBuffer - Store profile events in RAM in a Perl ARRAY
+IPC::Run3::ProfArrayBuffer - Store profile events in RAM in an array
 
 =head1 SYNOPSIS
 
@@ -13,7 +13,15 @@ IPC::Run3::ProfArrayBuffer - Store profile events in RAM in a Perl ARRAY
 =cut
 
 use strict;
+use warnings;
 
+=head1 METHODS
+
+=over
+
+=item C<< IPC::Run3::ProfArrayBuffer->new() >>
+
+=cut
 
 sub new {
     my $class = ref $_[0] ? ref shift : shift;
@@ -25,23 +33,23 @@ sub new {
     return $self;
 }
 
+=item C<< $buffer->app_call(@events) >>
 
-my @code;
+=item C<< $buffer->app_exit(@events) >>
 
-for ( qw( app_call app_exit run_exit ) ) {
-    push @code, <<END_TEMPLATE;
-#line 1 IPC::Run3::ProfArrayBuffer::$_()
-sub $_ {
-    push \@{shift->{Events}}, [ $_ => \@_ ];
+=item C<< $buffer->run_exit(@events) >>
+
+The three above methods push the given events onto the stack of recorded
+events.
+
+=cut
+
+for my $subname ( qw(app_call app_exit run_exit) ) {
+  no strict 'refs';
+  *{$subname} = sub {
+      push @{shift->{Events}}, [ $subname => @_ ];
+  };
 }
-END_TEMPLATE
-}
-
-eval join "", @code, 1 or die $@;
-
-=head1 METHODS
-
-=over
 
 =item get_events
 
@@ -63,7 +71,7 @@ sub get_events {
 
 =head1 COPYRIGHT
 
-    Copyright 2003, R. Barrie Slaymaker, Jr., All Rights Reserved
+Copyright 2003, R. Barrie Slaymaker, Jr., All Rights Reserved
 
 =head1 LICENSE
 
@@ -72,7 +80,7 @@ any version.
 
 =head1 AUTHOR
 
-Barrie Slaymaker <barries@slaysys.com>
+Barrie Slaymaker E<lt>barries@slaysys.comE<gt>
 
 =cut
 

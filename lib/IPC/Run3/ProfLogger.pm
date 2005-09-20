@@ -1,24 +1,24 @@
 package IPC::Run3::ProfLogger;
 
-$VERSION = 0.000_1;
+$VERSION = 0.030;
 
 =head1 NAME
 
-IPC::Run3::ProfLogger - Write profiling data to a log file
+IPC::Run3::ProfLogger - write profiling data to a log file
 
 =head1 SYNOPSIS
 
-    use IPC::Run3::ProfLogger;
+ use IPC::Run3::ProfLogger;
 
-    my $l = IPC::Run3::ProfLogger->new;  ## write to "run3.out"
-    my $l = IPC::Run3::ProfLogger->new( Destination => $fn );
+ my $logger = IPC::Run3::ProfLogger->new;  ## write to "run3.out"
+ my $logger = IPC::Run3::ProfLogger->new( Destination => $fn );
 
-    $l->app_call( \@cmd, $time );
+ $logger->app_call( \@cmd, $time );
 
-    $l->run_exit( \@cmd1, @times1 );
-    $l->run_exit( \@cmd1, @times1 );
+ $logger->run_exit( \@cmd1, @times1 );
+ $logger->run_exit( \@cmd1, @times1 );
 
-    $l->app_exit( $time );
+ $logger->app_exit( $time );
 
 =head1 DESCRIPTION
 
@@ -32,6 +32,13 @@ classes.
 =cut
 
 use strict;
+use warnings;
+
+=head1 METHODS
+
+=head2 C<< IPC::Run3::ProfLogger->new( ... ) >>
+
+=cut
 
 sub new {
     my $class = ref $_[0] ? ref shift : shift;
@@ -48,6 +55,10 @@ sub new {
     $self->{times} = [];
     return $self;
 }
+
+=head2 C<< $logger->run_exit( ... ) >>
+
+=cut
 
 sub run_exit {
     my $self = shift;
@@ -73,11 +84,19 @@ sub run_exit {
     );
 }
 
+=head2 C<< $logger->app_exit( $arg ) >>
+
+=cut
+
 sub app_exit {
     my $self = shift;
     my $fh = $self->{FH};
     print $fh "\\app_exit ", shift, "\n";
 }
+
+=head2 C<< $logger->app_call( $t, @args) >>
+
+=cut
 
 sub app_call {
     my $self = shift;
@@ -105,7 +124,7 @@ sub app_call {
 
 =head1 COPYRIGHT
 
-    Copyright 2003, R. Barrie Slaymaker, Jr., All Rights Reserved
+Copyright 2003, R. Barrie Slaymaker, Jr., All Rights Reserved
 
 =head1 LICENSE
 
@@ -114,7 +133,7 @@ any version.
 
 =head1 AUTHOR
 
-Barrie Slaymaker <barries@slaysys.com>
+Barrie Slaymaker E<lt>barries@slaysys.comE<gt>
 
 =cut
 

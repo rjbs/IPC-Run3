@@ -6,11 +6,11 @@ IPC::Run3 - run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 
 =head1 VERSION
 
-version 0.020
+version 0.030
 
 =cut
 
-$VERSION = '0.020';
+$VERSION = '0.030';
 
 =head1 SYNOPSIS
 
@@ -29,6 +29,8 @@ API and none of the bloat and rarely used features of IPC::Run.
 Speed, simplicity, and portability are paramount.  (That's speed of Perl code;
 which is often much slower than the kind of buffered I/O that this module uses
 to spool input to and output from the child command.) Disk space is not.
+
+=head2 C<< run3(\@cmd, INPUT, OUTPUT, \$err) >>
 
 Note that passing in a reference to C<undef> explicitly redirects the
 associated file descriptor for C<STDIN>, C<STDOUT>, or C<STDERR> from or to the
@@ -78,7 +80,7 @@ Here's how it stacks up to existing APIs:
 
 =over
 
-=item compared to system(), qx'', open "...|", open "|...":
+=item compared to C<system()>, C<qx''>, C<open "...|">, C<open "|...">:
 
 =over
 
@@ -86,20 +88,19 @@ Here's how it stacks up to existing APIs:
 
 =item + returns TRUE on success, FALSE on failure
 
-=item + throws an error if problems occur in the parent process (or the
-pre-exec child)
+=item + throws an error if problems occur in the parent process (or the pre-exec child)
 
-=item + allows a very perlish interface to perl data structures and subroutines
+=item + allows a very perlish interface to Perl data structures and subroutines
 
 =item + allows 1 word invocations to avoid the shell easily:
 
-    run3 ["foo"];  # does not invoke shell
+ run3 ["foo"];  # does not invoke shell
 
 =item - does not return the exit code, leaves it in $?
 
 =back
 
-=item compared to open2(), open3():
+=item compared to C<open2()>, C<open3()>:
 
 =over
 
@@ -115,7 +116,7 @@ pre-exec child)
 
 =back
 
-=item compared to IPC::Run::run():
+=item compared to C<IPC::Run::run()>:
 
 =over
 
@@ -158,7 +159,6 @@ BEGIN {
 
 use Carp qw( croak );
 use File::Temp qw( tempfile );
-use UNIVERSAL qw( isa );
 use POSIX qw( dup dup2 );
 
 # We cache the handles of our temp files in order to
@@ -175,23 +175,18 @@ BEGIN {
         if ( $ENV{IPCRUN3PROFILE} =~ /\A\d+\z/ ) {
             require IPC::Run3::ProfPP;
             IPC::Run3::ProfPP->import;
-            $profiler = IPC::Run3::ProfPP->new(
-                Level => $ENV{IPCRUN3PROFILE},
-            );
-        }
-        else {
+            $profiler = IPC::Run3::ProfPP->new(Level => $ENV{IPCRUN3PROFILE});
+        } else {
             my ( $dest, undef, $class ) =
                reverse split /(=)/, $ENV{IPCRUN3PROFILE}, 2;
             $class = "IPC::Run3::ProfLogger"
                 unless defined $class && length $class;
-            unless ( eval "require $class" ) {
-                my $x = $@;
+            if ( not eval "require $class" ) {
+                my $e = $@;
                 $class = "IPC::Run3::$class";
-                eval "require IPC::Run3::$class" or die $x;
+                eval "require IPC::Run3::$class" or die $e;
             }
-            $profiler = $class->new(
-                Destination => $dest,
-            );
+            $profiler = $class->new( Destination => $dest );
         }
         $profiler->app_call( [ $0, @ARGV ], scalar gettimeofday() );
     }
@@ -201,7 +196,6 @@ BEGIN {
 END {
     $profiler->app_exit( scalar gettimeofday() ) if profiling;
 }
-
 
 sub _spool_data_to_child {
     my ( $type, $source, $binmode_it ) = @_;
@@ -222,13 +216,11 @@ sub _spool_data_to_child {
         }
         warn "run3(): feeding file '$source' to child STDIN\n"
             if debugging >= 2;
-    }
-    elsif ( $type eq "FH" ) {
+    } elsif ( $type eq "FH" ) {
         $fh = $source;
         warn "run3(): feeding filehandle '$source' to child STDIN\n"
             if debugging >= 2;
-    }
-    else {
+    } else {
         $fh = $fh_cache{in} ||= tempfile;
         truncate $fh, 0;
         seek $fh, 0, 0;
@@ -256,8 +248,7 @@ sub _spool_data_to_child {
             $seekit = length $$source;
             print $fh $$source or die "$! writing to temp file";
 
-        }
-        elsif ( $type eq "ARRAY" ) {
+        } elsif ( $type eq "ARRAY" ) {
             warn "run3(): feeding ARRAY to child STDIN",
                 debugging >= 3 ? ( ": '", @$source, "'" ) : (),
                 "\n"
@@ -265,8 +256,7 @@ sub _spool_data_to_child {
 
             print $fh @$source or die "$! writing to temp file";
             $seekit = grep length, @$source;
-        }
-        elsif ( $type eq "CODE" ) {
+        } elsif ( $type eq "CODE" ) {
             warn "run3(): feeding output of CODE ref '$source' to child STDIN\n"
                 if debugging >= 2;
             my $parms = [];  # TODO: get these from $options
@@ -288,7 +278,6 @@ sub _spool_data_to_child {
     return $fh;
 }
 
-
 sub _fh_for_child_output {
     my ( $what, $type, $dest, $binmode_it ) = @_;
 
@@ -302,21 +291,18 @@ sub _fh_for_child_output {
             open FH, ">" . File::Spec->devnull;
             *FH{IO};
         };
-    }
-    elsif ( $type eq "FH" ) {
+    } elsif ( $type eq "FH" ) {
         $fh = $dest;
         warn "run3(): redirecting $what to filehandle '$dest'\n"
             if debugging >= 3;
-    }
-    elsif ( !$type ) {
+    } elsif ( !$type ) {
         warn "run3(): feeding child $what to file '$dest'\n"
             if debugging >= 2;
 
         local *FH;
         open FH, ">$dest" or croak "$!: $dest";
         $fh = *FH{IO};
-    }
-    else {
+    } else {
         warn "run3(): capturing child $what\n"
             if debugging >= 2;
 
@@ -332,7 +318,6 @@ sub _fh_for_child_output {
     }
     return $fh;
 }
-
 
 sub _read_child_output_fh {
     my ( $what, $type, $dest, $fh, $options ) = @_;
@@ -361,8 +346,7 @@ sub _read_child_output_fh {
 
             $count = read $fh, $$dest, 10_000, length $$dest;
         }
-    }
-    elsif ( $type eq "ARRAY" ) {
+    } elsif ( $type eq "ARRAY" ) {
         @$dest = <$fh>;
         if ( debugging >= 2 ) {
             my $count = 0;
@@ -374,8 +358,7 @@ sub _read_child_output_fh {
                 debugging >= 3 ? ( ": '", @$dest, "'" ) : (),
                 "\n";
         }
-    }
-    elsif ( $type eq "CODE" ) {
+    } elsif ( $type eq "CODE" ) {
         warn "run3(): capturing child $what to CODE ref\n"
             if debugging >= 3;
 
@@ -391,22 +374,18 @@ sub _read_child_output_fh {
 
             $dest->( $_ );
         }
-    }
-    else {
+    } else {
         croak "run3() can't redirect child $what to a $type";
     }
 
-#    close $fh;
 }
-
 
 sub _type {
     my ( $redir ) = @_;
-    return "FH" if isa $redir, "IO::Handle";
+    return "FH" if eval { $redir->isa("IO::Handle") };
     my $type = ref $redir;
     return $type eq "GLOB" ? "FH" : $type;
 }
-
 
 sub _max_fd {
     my $fd = dup(0);
@@ -434,8 +413,7 @@ sub run3 {
         croak "run3(): empty command"     unless @$cmd;
         croak "run3(): undefined command" unless defined $cmd->[0];
         croak "run3(): command name ('')" unless length  $cmd->[0];
-    }
-    else {
+    } else {
         croak "run3(): missing command" unless @_;
         croak "run3(): undefined command" unless defined $cmd;
         croak "run3(): command ('')" unless length  $cmd;
@@ -500,17 +478,17 @@ sub run3 {
         $sys_call_time = gettimeofday() if profiling;
 
         my $r = ref $cmd
-           ? system {$cmd->[0]}
-                   is_win32
-                       ? map {
-                           # Probably need to offer a win32 escaping
-                           # option, every command may be different.
-                           ( my $s = $_ ) =~ s/"/"""/g;
-                           $s = qq{"$s"};
-                           $s;
-                       } @$cmd
-                       : @$cmd
-           : system $cmd;
+              ? system { $cmd->[0] }
+                       is_win32
+                           ? map {
+                                 # Probably need to offer a win32 escaping
+                                 # option, every command may be different.
+                                 ( my $s = $_ ) =~ s/"/"""/g;
+                                 $s = qq{"$s"};
+                                 $s;
+                             } @$cmd
+                           : @$cmd
+              : system $cmd;
 
         $sys_exit_time = gettimeofday() if profiling;
 
@@ -563,23 +541,18 @@ sub run3 {
     return 1;
 }
 
-my $in_fh;
-my $in_fd;
-my $out_fh;
-my $out_fd;
-my $err_fh;
-my $err_fd;
-        $in_fh = tempfile;
-        $in_fd = fileno $in_fh;
-        $out_fh = tempfile;
-        $out_fd = fileno $out_fh;
-        $err_fh = tempfile;
-        $err_fd = fileno $err_fh;
-    my $saved_fd0 = dup 0;
-    my $saved_fd1 = dup 1;
-    my $saved_fd2 = dup 2;
-    my $r;
-    my ( $cmd, $stdin, $stdout, $stderr );
+my $in_fh = tempfile;
+my $in_fd = fileno $in_fh;
+my $out_fh = tempfile;
+my $out_fd = fileno $out_fh;
+my $err_fh = tempfile;
+my $err_fd = fileno $err_fh;
+
+my $saved_fd0 = dup 0;
+my $saved_fd1 = dup 1;
+my $saved_fd2 = dup 2;
+my $r;
+my ( $cmd, $stdin, $stdout, $stderr );
 
 sub _run3 {
     ( $cmd, $stdin, $stdout, $stderr ) = @_;
@@ -600,17 +573,16 @@ sub _run3 {
     dup2 $out_fd, 1 or croak "run3(): $! redirecting STDOUT";
     dup2 $err_fd, 2 or croak "run3(): $! redirecting STDERR";
 
-    $r = 
-       system {$cmd->[0]}
-               is_win32
-                   ? map {
-                       # Probably need to offer a win32 escaping
-                       # option, every command is different.
-                       ( my $s = $_ ) =~ s/"/"""/g;
-                       $s = q{"$s"} if /[^\w.:\/\\'-]/;
-                       $s;
-                   } @$cmd
-                   : @$cmd;
+    $r = system {$cmd->[0]}
+                is_win32
+                    ? map {
+                          # Probably need to offer a win32 escaping
+                          # option, every command is different.
+                          ( my $s = $_ ) =~ s/"/"""/g;
+                          $s = q{"$s"} if /[^\w.:\/\\'-]/;
+                          $s;
+                      } @$cmd
+                    : @$cmd;
 
     die $! unless defined $r;
 
@@ -638,9 +610,6 @@ sub _run3 {
 
     return 1;
 }
-
-=cut
-
 
 =head1 TODO
 

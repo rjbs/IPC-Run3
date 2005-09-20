@@ -24,15 +24,12 @@ require IPC::Run3::ProfReporter;
 @ISA = qw( IPC::Run3::ProfReporter );
 
 use strict;
+use warnings;
 use POSIX qw( floor );
 
 =head1 METHODS
 
-=over
-
-=item new
-
-    IPC::Run3::ProfPP->new;
+=head2 C<< IPC::Run3::ProfPP->new() >>
 
 Returns a new profile reporting object.
 
@@ -54,6 +51,9 @@ sub _pct {
     sprintf  " (%3d%%)", floor( 100 * $num / $denom + 0.5 );
 }
 
+=head2 C<< $profpp->handle_app_call() >>
+
+=cut
 
 sub handle_app_call {
     my $self = shift;
@@ -64,6 +64,9 @@ sub handle_app_call {
     $self->{NeedNL} = 1;
 }
 
+=head2 C<< $profpp->handle_app_exit() >>
+
+=cut
 
 sub handle_app_exit {
     my $self = shift;
@@ -110,6 +113,9 @@ sub handle_app_exit {
         "\n";
 }
 
+=head2 C<< $profpp->handle_run_exit() >>
+
+=cut
 
 sub handle_run_exit {
     my $self = shift;
@@ -128,9 +134,6 @@ sub handle_run_exit {
              "\n";
 }
 
-=back
-
-
 =head1 LIMITATIONS
 
 =head1 COPYRIGHT
@@ -144,7 +147,7 @@ any version.
 
 =head1 AUTHOR
 
-Barrie Slaymaker <barries@slaysys.com>
+Barrie Slaymaker E<lt>barries@slaysys.comE<gt>
 
 =cut
 

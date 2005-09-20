@@ -4,7 +4,7 @@ $VERSION = 0.000_1;
 
 =head1 NAME
 
-IPC::Run3::ProfReporter - A base class for handling profiling data
+IPC::Run3::ProfReporter - base class for handling profiling data
 
 =head1 SYNOPSIS
 
@@ -83,9 +83,7 @@ END {
 
 =over
 
-=item new
-
-    IPC::Run3::ProfReporter->new;
+=item C<< IPC::Run3::ProfReporter->new; >>
 
 Returns a new profile reporting object.
 
@@ -100,12 +98,26 @@ sub new {
     return $self;
 }
 
+=item C<< $reporter->handle_app_call( ... ) >>
+
+=item C<< $reporter->handle_app_exit( ... ) >>
+
+=item C<< $reporter->handle_run_exit( ... ) >>
+
+These methods are called by the handled events (see below).
+
+=cut
+
 sub handle_app_call {}
 sub handle_app_exit {}
 
 sub handle_run_exit {}
 
-=item app_call, app_exit, run_exit
+=item C<< $reporter->app_call($time) >>
+
+=item C<< $reporter->app_exit($time) >>
+
+=item C<< $reporter->run_exit($time) >>
 
    $self->app_call( $time );
    my $time = $self->get_app_call_time;
@@ -120,26 +132,10 @@ bit.
 
 =cut
 
-sub get_run_count { shift->{run_count} }
-
 sub app_call {
     my $self = shift;
     ( $self->{app_cmd}, $self->{app_call_time} ) = @_;
     $self->handle_app_call if $self->{app_report};
-}
-
-sub get_app_call_time { shift->{app_call_time} }
-sub get_app_exit_time { shift->{app_exit_time} }
-sub get_app_cmd       { shift->{app_cmd}       }
-sub get_app_time {
-    my $self = shift;
-    $self->get_app_exit_time - $self->get_app_call_time;
-}
-
-
-sub get_app_cumulative_time {
-    my $self = shift;
-    $self->get_app_exit_time - $self->get_app_call_time;
 }
 
 sub app_exit {
@@ -160,6 +156,44 @@ sub run_exit {
     $self->handle_run_exit if $self->{run_report};
 }
 
+=item C<< $reporter->get_run_count() >>
+
+=item C<< $reporter->get_app_call_time() >>
+
+=item C<< $reporter->get_app_exit_time() >>
+
+=item C<< $reporter->get_app_cmd() >>
+
+=item C<< $reporter->get_app_time() >>
+
+=cut
+
+sub get_run_count     { shift->{run_count} }
+sub get_app_call_time { shift->{app_call_time} }
+sub get_app_exit_time { shift->{app_exit_time} }
+sub get_app_cmd       { shift->{app_cmd}       }
+sub get_app_time {
+    my $self = shift;
+    $self->get_app_exit_time - $self->get_app_call_time;
+}
+
+=item C<< $reporter->get_app_cumulative_time() >>
+
+=cut
+
+sub get_app_cumulative_time {
+    my $self = shift;
+    $self->get_app_exit_time - $self->get_app_call_time;
+}
+
+=item C<< $reporter->get_run_call_time() >>
+
+=item C<< $reporter->get_run_exit_time() >>
+
+=item C<< $reporter->get_run_time() >>
+
+=cut
+
 sub get_run_call_time { shift->{run_call_time} }
 sub get_run_exit_time { shift->{run_exit_time} }
 sub get_run_time {
@@ -167,7 +201,19 @@ sub get_run_time {
     $self->get_run_exit_time - $self->get_run_call_time;
 }
 
+=item C<< $reporter->get_run_cumulative_time() >>
+
+=cut
+
 sub get_run_cumulative_time { shift->{run_cumulative_time} }
+
+=item C<< $reporter->get_sys_call_time() >>
+
+=item C<< $reporter->get_sys_exit_time() >>
+
+=item C<< $reporter->get_sys_time() >>
+
+=cut
 
 sub get_sys_call_time { shift->{sys_call_time} }
 sub get_sys_exit_time { shift->{sys_exit_time} }
@@ -175,12 +221,20 @@ sub get_sys_time {
     my $self = shift;
     $self->get_sys_exit_time - $self->get_sys_call_time;
 }
+
+=item C<< $reporter->get_sys_cumulative_time() >>
+
+=cut
+
 sub get_sys_cumulative_time { shift->{sys_cumulative_time} }
+
+=item C<< $reporter->get_run_cmd() >>
+
+=cut
 
 sub get_run_cmd { shift->{run_cmd} }
 
 =back
-
 
 =head1 LIMITATIONS
 
