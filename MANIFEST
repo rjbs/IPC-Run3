@@ -1,4 +1,5 @@
 Changes
+README
 MANIFEST
 MANIFEST.SKIP
 Makefile.PL
@@ -18,4 +19,6 @@ t/IPC-Run3-profiling.t
 t/IPC-Run3.t
 t/fd_leak.t
 t/test.txt
+t/pod-coverage.t
+t/pod.t
 META.yml                                 Module meta-data (added by MakeMaker)

@@ -1,5 +1,8 @@
 Changes file for IPC::Run3
 
+0.031   2005-09-27
+        documentation improvements
+
 0.020   2005-07-12 08:39:00 EST
         maintenance assumed (temporarily) by RJBS
         removed inexplicable and mysterious MY::libscan from Makefile.PL
