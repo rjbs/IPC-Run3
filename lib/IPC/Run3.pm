@@ -6,11 +6,11 @@ IPC::Run3 - run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 
 =head1 VERSION
 
-version 0.031
+version 0.032
 
 =cut
 
-$VERSION = '0.031';
+$VERSION = '0.032';
 
 =head1 SYNOPSIS
 
@@ -164,6 +164,7 @@ use POSIX qw( dup dup2 );
 # We cache the handles of our temp files in order to
 # keep from having to incur the (largish) overhead of File::Temp
 my %fh_cache;
+my $fh_cache_pid = $$;
 
 my $profiler;
 
@@ -423,6 +424,13 @@ sub run3 {
     my $out_type = _type $stdout;
     my $err_type = _type $stderr;
 
+    if ($fh_cache_pid != $$) {
+	# fork detected, close all cached filehandles and clear the cache
+	close $_ foreach values %fh_cache;
+	%fh_cache = ();
+	$fh_cache_pid = $$;
+    }
+    
     # This routine procedes in stages so that a failure in an early
     # stage prevents later stages from running, and thus from needing
     # cleanup.

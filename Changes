@@ -1,5 +1,16 @@
 Changes file for IPC::Run3
 
+0.032	2005-10-19
+        comaint granted to RSCHUPP (thanks, barry!)
+        fix bug #15003 "Data corruption with fork when both parent 
+          and child use run3": 
+          - purge %fh_cache when we detect that a fork has happened
+          - add t/fork.t to detect "crossover" between child processes
+          - fix (and test) only works on Unix, Windows has more
+            problems with run3 from a forked (pseudo) process
+        fix prereq - should specify 0 (not 1) if any version will do
+	added tests for redirection to/from filehandles to t/IPC-Run3.t
+
 0.031   2005-09-27
         documentation improvements
 

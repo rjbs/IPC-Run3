@@ -104,6 +104,31 @@ sub {
     ok -s $fn, 3;
 },
 
+sub {
+    my $fn = "t/test.txt";
+    open FH, ">$fn" or warn "$! opening $fn";
+
+    ( $in, $out, $err ) = ();
+    run3 [$^X, '-e', 'print "OUT"' ], \undef, \*FH;
+
+    close FH;
+    ok -s $fn, 3;
+},
+
+sub {
+    my $fn = "t/test.txt";
+    open FH, ">$fn" or warn "$! opening $fn";
+    print FH "IN1\IN2\n";
+    close FH;
+
+    open FH, "<$fn" or warn "$! opening $fn";
+
+    ( $in, $out, $err ) = ();
+    run3 [$^X, '-e', 'print <>' ], \*FH, \$out;
+
+    close FH;
+    ok $out, "IN1\IN2\n";
+},
 );
 
 plan tests => 0+@tests;
