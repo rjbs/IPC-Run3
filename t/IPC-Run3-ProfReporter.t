@@ -29,7 +29,7 @@ sub {
 },
 
 sub {
-    $p->run_exit( [], 0.1, 0.2 );
+    $p->run_exit( [], 0.1, 0.2, 0.3, 0.4 );
     ok $p->get_run_call_time, 0.1;
 },
 

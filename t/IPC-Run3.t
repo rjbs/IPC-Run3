@@ -118,7 +118,7 @@ sub {
 sub {
     my $fn = "t/test.txt";
     open FH, ">$fn" or warn "$! opening $fn";
-    print FH "IN1\IN2\n";
+    print FH "IN1\nIN2\n";
     close FH;
 
     open FH, "<$fn" or warn "$! opening $fn";
@@ -127,7 +127,7 @@ sub {
     run3 [$^X, '-e', 'print <>' ], \*FH, \$out;
 
     close FH;
-    ok $out, "IN1\IN2\n";
+    ok $out, "IN1\nIN2\n";
 },
 );
 

@@ -83,7 +83,7 @@ END {
 
 =over
 
-=item C<< IPC::Run3::ProfReporter->new; >>
+=item C<< IPC::Run3::ProfReporter->new >>
 
 Returns a new profile reporting object.
 
@@ -113,11 +113,11 @@ sub handle_app_exit {}
 
 sub handle_run_exit {}
 
-=item C<< $reporter->app_call($time) >>
+=item C<< $reporter->app_call(\@cmd, $time) >>
 
 =item C<< $reporter->app_exit($time) >>
 
-=item C<< $reporter->run_exit($time) >>
+=item C<< $reporter->run_exit(@times) >>
 
    $self->app_call( $time );
    my $time = $self->get_app_call_time;

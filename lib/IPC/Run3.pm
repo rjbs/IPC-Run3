@@ -6,11 +6,11 @@ IPC::Run3 - run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 
 =head1 VERSION
 
-version 0.032
+version 0.033
 
 =cut
 
-$VERSION = '0.032';
+$VERSION = '0.033';
 
 =head1 SYNOPSIS
 
@@ -212,8 +212,8 @@ sub _spool_data_to_child {
         open FH, "<$source" or croak "$!: $source";
         $fh = *FH{IO};
         if ( is_win32 ) {
-            binmode ":raw"; # Remove all layers
-            binmode ":crlf" unless $binmode_it;
+            binmode $fh, ":raw"; # Remove all layers
+            binmode $fh, ":crlf" unless $binmode_it;
         }
         warn "run3(): feeding file '$source' to child STDIN\n"
             if debugging >= 2;
@@ -545,76 +545,6 @@ sub run3 {
        $sys_exit_time,
        scalar gettimeofday() 
     ) if profiling;
-
-    return 1;
-}
-
-my $in_fh = tempfile;
-my $in_fd = fileno $in_fh;
-my $out_fh = tempfile;
-my $out_fd = fileno $out_fh;
-my $err_fh = tempfile;
-my $err_fd = fileno $err_fh;
-
-my $saved_fd0 = dup 0;
-my $saved_fd1 = dup 1;
-my $saved_fd2 = dup 2;
-my $r;
-my ( $cmd, $stdin, $stdout, $stderr );
-
-sub _run3 {
-    ( $cmd, $stdin, $stdout, $stderr ) = @_;
-
-    truncate $in_fh, 0;
-    seek $in_fh, 0, 0;
-
-    print $in_fh $$stdin or die "$! writing to temp file";
-    seek $in_fh, 0, 0;
-
-    seek $out_fh, 0, 0;
-    truncate $out_fh, 0;
-
-    seek $err_fh, 0, 0;
-    truncate $err_fh, 0;
-
-    dup2 $in_fd,  0 or croak "run3(): $! redirecting STDIN";
-    dup2 $out_fd, 1 or croak "run3(): $! redirecting STDOUT";
-    dup2 $err_fd, 2 or croak "run3(): $! redirecting STDERR";
-
-    $r = system {$cmd->[0]}
-                is_win32
-                    ? map {
-                          # Probably need to offer a win32 escaping
-                          # option, every command is different.
-                          ( my $s = $_ ) =~ s/"/"""/g;
-                          $s = q{"$s"} if /[^\w.:\/\\'-]/;
-                          $s;
-                      } @$cmd
-                    : @$cmd;
-
-    die $! unless defined $r;
-
-    dup2 $saved_fd0, 0;
-    dup2 $saved_fd1, 1;
-    dup2 $saved_fd2, 2;
-
-    seek $out_fh, 0, 0 or croak "$! seeking on temp file for child output";
-
-        my $count = read $out_fh, $$stdout, 10_000;
-        while ( $count == 10_000 ) {
-            $count = read $out_fh, $$stdout, 10_000, length $$stdout;
-        }
-        croak "$! reading child output from temp file"
-            unless defined $count;
-
-    seek $err_fh, 0, 0 or croak "$! seeking on temp file for child errput";
-
-        $count = read $err_fh, $$stderr, 10_000;
-        while ( $count == 10_000 ) {
-            $count = read $err_fh, $$stderr, 10_000, length $$stdout;
-        }
-        croak "$! reading child stderr from temp file"
-            unless defined $count;
 
     return 1;
 }

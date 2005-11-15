@@ -1,12 +1,12 @@
 use Test::More;
+plan skip_all => "Test::More 0.31 required for no_ending()" if $Test::More::VERSION <= 0.31;
+plan skip_all => "tests fail on Cygwin" if $^O eq 'cygwin';
+plan tests => 5;
+
 use IPC::Run3;
-use POSIX;
 use strict;
 
-if ($^O =~ /Win32/) { plan skip_all => 'fork tests fail on Windows'; }
-else		    { plan tests => 5; }
-
-sub echo
+sub techo
 {
     my $exp = shift;
     my $got;
@@ -17,56 +17,76 @@ sub echo
 my ($got, $exp);
 
 # force IPC::Run3 into populating %fh_cache 
-# by running echo once in the parent
-($got, $exp) = echo("parent$$");
-is($got, $exp, "echo parent before fork");
+# by running techo once in the parent
+($got, $exp) = techo("parent$$ before fork");
+is($got, $exp, "parent before fork");
 
 if (my $pid = fork)
 {
     # parent
-    ok(waitpid(-1, 0) > 0 && $? == 0, "echo child");
+    my $kid = waitpid($pid, 0);
+    ok($kid == $pid && $? == 0, "single child");
 }
 else
 {
     # child
-    my ($got, $exp) = echo("child$$");
 
-    # don't use exit() or die() because they will run the END block
-    # set up by Test::More in the child (so that it gets run twice)
-    POSIX::_exit(0) if $exp eq $got;
+    # ask Test::More not to run its END block in the child
+    Test::More->builder->no_ending(1);
 
-    warn qq[child $$: expected "$exp", got "$got"\n];
-    POSIX::_exit(1);
-}
-
-($got, $exp) = echo("parent$$");
-is($got, $exp, "echo parent after fork");
-
-# now run several child processes in parallel,
-# all calling run3 repeatedly
-my ($kids, $runs) = (5, 10);	# usually enough, even on uniprocessor systems
-
-for (1..$kids)
-{
-    unless (fork)
+    my ($got, $exp) = techo("child$$");
+    if ($exp eq $got)
     {
-        # child
-	for (1..$runs)
-	{
-	    my ($got, $exp) = echo("child$$:run$_");
-	    POSIX::_exit(0) if $exp eq $got;
-
-	    warn qq[child $$: expected "$exp", got "$got"\n];
-	    POSIX::_exit(1);
-	}
+	exit(0);
+    }
+    else
+    {
+	diag qq[child $$: expected "$exp", got "$got"\n];
+	exit(1);
     }
 }
 
-my ($failed, $reaped);
-while (waitpid(-1, 0) > 0)
+($got, $exp) = techo("parent$$ after fork");
+is($got, $exp, "parent after fork");
+
+# now run several child processes in parallel,
+# all calling run3 repeatedly
+my ($nkids, $nruns) = (5, 10);	# usually enough, even on uniprocessor systems
+
+my @kids;
+for (1..$nkids)
 {
-    $reaped++;
-    $failed++ unless $? == 0;
+    if (my $kid = fork)
+    {
+	push @kids, $kid;
+    }
+    else
+    {
+        # child
+	Test::More->builder->no_ending(1);
+
+	for (1..$nruns)
+	{
+	    my ($got, $exp) = techo("child$$:run$_");
+	    next if $exp eq $got;
+
+	    diag qq[child $$: expected "$exp", got "$got"\n];
+	    exit(1);
+	}
+
+	exit(0);
+    }
 }
-ok($reaped == $kids, "run $kids parallel child processes");
-ok($failed == 0, "check for filehandle crossover");
+
+my $nok = 0;
+while (@kids)
+{
+    my $kid = shift @kids;
+    my $pid = waitpid($kid, 0);
+    $nok++ if $pid == $kid && $? == 0;
+}
+ok($nok == $nkids, "$nkids parallel child processes, each run $nruns times");
+
+($got, $exp) = techo("parent$$ after parallel forks");
+is($got, $exp, "parent after parallel forks");
+
