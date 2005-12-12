@@ -1,3 +1,5 @@
+#!perl -w
+
 use Test;
 use IPC::Run3::ProfLogReader;
 use IPC::Run3::ProfArrayBuffer;

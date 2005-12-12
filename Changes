@@ -1,5 +1,21 @@
 Changes file for IPC::Run3
 
+0.034	2005-12-12
+	skip t/fork.t on MSWin32 (and Cygwin):
+	  Win32 threads (and fork() is emulated via threads) in the
+	  same process share the same STDIN/STDOUT/STDERR, hence
+	  the method used by run3() (redirect STD* and then call system())
+	  doesn't work here and IO crossover is to be expected -
+	  a possible alternative on Win32 would be to use CreateProcess
+	  which lets you explicitly specify three filehandles for the
+	  new process' STDIN/STDOUT/STDERR; however Win32::Process::Create()
+	  (from the libwin32 CPAN distribution) as omitted these
+	  parameters from the Perl wrapper
+	add a note to the documentation about the problems with
+	  concurrent calls to run3 in a threaded environment 
+	  (incl. fork() on Win32)
+	make sure all tests run with warnings on
+
 0.033	2005-11-15
 	make documentation in IPC/Run3/ProfReporter.pm comply with
 	  older versions of Pod::Coverage (fixes bug #15749)

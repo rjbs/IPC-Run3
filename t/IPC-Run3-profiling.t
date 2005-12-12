@@ -1,3 +1,5 @@
+#!perl -w
+
 BEGIN {
     $ENV{IPCRUN3PROFILE} = "IPC::Run3::ProfArrayBuffer=";
 }

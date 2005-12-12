@@ -6,11 +6,11 @@ IPC::Run3 - run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 
 =head1 VERSION
 
-version 0.033
+version 0.034
 
 =cut
 
-$VERSION = '0.033';
+$VERSION = '0.034';
 
 =head1 SYNOPSIS
 
@@ -558,6 +558,14 @@ pty support
 Often uses intermediate files (determined by File::Temp, and thus by the
 File::Spec defaults and the TMPDIR env. variable) for speed, portability and
 simplicity.
+
+Use extrem caution when using C<run3> in a threaded environment if
+concurrent calls of C<run3> are possible. Most likely, I/O from different
+invocations will get mixed up. The reason is that in most thread 
+implementations all threads in a process share the same STDIN/STDOUT/STDERR.
+Known failures are Perl ithreads on Linux and Win32. Note that C<fork>
+on Win32 is emulated via Win32 threads and hence I/O mix up is possible
+between forked children here (C<run3> is "fork safe" on Unix, though).
 
 =head1 COPYRIGHT
 

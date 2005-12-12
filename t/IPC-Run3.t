@@ -1,3 +1,5 @@
+#!perl -w
+
 use Test qw( plan );
 use IPC::Run3;
 use strict;

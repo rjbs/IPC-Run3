@@ -1,6 +1,8 @@
+#!perl -w
+
 use Test::More;
 plan skip_all => "Test::More 0.31 required for no_ending()" if $Test::More::VERSION <= 0.31;
-plan skip_all => "tests fail on Cygwin" if $^O eq 'cygwin';
+plan skip_all => "tests fail on Win32 and Cygwin" if $^O =~ /^(MSWin32|cygwin)$/;
 plan tests => 5;
 
 use IPC::Run3;

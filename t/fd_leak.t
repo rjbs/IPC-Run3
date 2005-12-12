@@ -1,3 +1,5 @@
+#!perl -w
+
 use Test::More;
 
 use IPC::Run3;
