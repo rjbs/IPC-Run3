@@ -1,5 +1,8 @@
 Changes file for IPC::Run3
 
+0.035	2005-07-27
+  remove requirement for Test::Pod and ::Coverage just to build
+
 0.034	2005-12-12
 	skip t/fork.t on MSWin32 (and Cygwin):
 	  Win32 threads (and fork() is emulated via threads) in the
