@@ -6,11 +6,11 @@ IPC::Run3 - run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 
 =head1 VERSION
 
-version 0.035
+version 0.036
 
 =cut
 
-$VERSION = '0.035';
+$VERSION = '0.036';
 
 =head1 SYNOPSIS
 
@@ -59,6 +59,9 @@ will write both to the same filehandle.  In general, this means that
 
 will DWYM and pass a single file handle to the child for both C<STDOUT> and
 C<STDERR>, collecting all into C<$both>.
+
+C<run3> returns true if the command executes and throws an exception otherwise.
+It should leave C<$?> intact for inspection of exit and wait status.
 
 =head1 DEBUGGING
 
