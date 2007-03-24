@@ -3,6 +3,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME          => 'IPC::Run3',
     VERSION_FROM  => 'lib/IPC/Run3.pm',
+    (eval { ExtUtils::MakeMaker->VERSION(6.21) } ? (LICENSE => 'open_source') : ()),
     EXE_FILES     => [],
     PREREQ_PM => {
       'Test::More'  => 0.31,

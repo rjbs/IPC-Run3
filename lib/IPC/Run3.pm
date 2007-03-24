@@ -6,11 +6,11 @@ IPC::Run3 - run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 
 =head1 VERSION
 
-version 0.036
+version 0.037
 
 =cut
 
-$VERSION = '0.036';
+$VERSION = '0.037';
 
 =head1 SYNOPSIS
 
