@@ -24,7 +24,6 @@ require IPC::Run3::ProfReporter;
 @ISA = qw( IPC::Run3::ProfReporter );
 
 use strict;
-use warnings;
 use POSIX qw( floor );
 
 =head1 METHODS

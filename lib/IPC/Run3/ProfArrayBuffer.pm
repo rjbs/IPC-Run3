@@ -1,6 +1,6 @@
 package IPC::Run3::ProfArrayBuffer;
 
-$VERSION = 0.030;
+$VERSION = 0.038;
 
 =head1 NAME
 
@@ -13,7 +13,6 @@ IPC::Run3::ProfArrayBuffer - Store profile events in RAM in an array
 =cut
 
 use strict;
-use warnings;
 
 =head1 METHODS
 

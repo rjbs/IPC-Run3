@@ -1,6 +1,6 @@
 package IPC::Run3::ProfLogger;
 
-$VERSION = 0.030;
+$VERSION = 0.038;
 
 =head1 NAME
 
@@ -32,7 +32,6 @@ classes.
 =cut
 
 use strict;
-use warnings;
 
 =head1 METHODS
 

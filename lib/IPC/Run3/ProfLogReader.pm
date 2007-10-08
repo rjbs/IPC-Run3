@@ -1,6 +1,6 @@
 package IPC::Run3::ProfLogReader;
 
-$VERSION = 0.030;
+$VERSION = 0.038;
 
 =head1 NAME
 
@@ -26,7 +26,6 @@ Reads a log file.  Use the filename "-" to read from STDIN.
 =cut
 
 use strict;
-use warnings;
 
 =head1 METHODS
 
