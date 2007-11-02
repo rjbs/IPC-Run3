@@ -34,6 +34,8 @@ Returns a new profile reporting object.
 
 =cut
 
+sub _emit { shift; warn @_ }
+
 sub _t {
     sprintf "%10.6f secs", @_;
 }
@@ -56,9 +58,10 @@ sub _pct {
 
 sub handle_app_call {
     my $self = shift;
-    warn "IPC::Run3 parent: ",
+    $self->_emit("IPC::Run3 parent: ",
         join( " ", @{$self->get_app_cmd} ),
-        "\n";
+        "\n",
+    );
 
     $self->{NeedNL} = 1;
 }
@@ -70,37 +73,37 @@ sub handle_app_call {
 sub handle_app_exit {
     my $self = shift;
 
-    warn "\n" if $self->{NeedNL} && $self->{NeedNL} != 1;
+    $self->_emit("\n") if $self->{NeedNL} && $self->{NeedNL} != 1;
 
-    warn "IPC::Run3 total elapsed:             ",
+    $self->_emit( "IPC::Run3 total elapsed:             ",
         _t( $self->get_app_cumulative_time ),
-        "\n";
-    warn "IPC::Run3 calls to run3():    ",
+        "\n");
+    $self->_emit( "IPC::Run3 calls to run3():    ",
         sprintf( "%10d", $self->get_run_count ),
-        "\n";
-    warn "IPC::Run3 total spent in run3():     ",
+        "\n");
+    $self->_emit( "IPC::Run3 total spent in run3():     ",
         _t( $self->get_run_cumulative_time ),
         _pct( $self->get_run_cumulative_time, $self->get_app_cumulative_time ),
         ", ",
         _r( $self->get_run_cumulative_time, $self->get_run_count ),
         " per call",
-        "\n";
+        "\n");
     my $exclusive = 
         $self->get_app_cumulative_time - $self->get_run_cumulative_time;
-    warn "IPC::Run3 total spent not in run3(): ",
+    $self->_emit( "IPC::Run3 total spent not in run3(): ",
         _t( $exclusive ),
         _pct( $exclusive, $self->get_app_cumulative_time ),
-        "\n";
-    warn "IPC::Run3 total spent in children:   ",
+        "\n");
+    $self->_emit( "IPC::Run3 total spent in children:   ",
         _t( $self->get_sys_cumulative_time ),
         _pct( $self->get_sys_cumulative_time, $self->get_app_cumulative_time ),
         ", ",
         _r( $self->get_sys_cumulative_time, $self->get_run_count ),
         " per call",
-        "\n";
+        "\n");
     my $overhead =
         $self->get_run_cumulative_time - $self->get_sys_cumulative_time;
-    warn "IPC::Run3 total overhead:            ",
+    $self->_emit( "IPC::Run3 total overhead:            ",
         _t( $overhead ),
         _pct(
             $overhead,
@@ -109,7 +112,7 @@ sub handle_app_exit {
         ", ",
         _r( $overhead, $self->get_run_count ),
         " per call",
-        "\n";
+        "\n");
 }
 
 =head2 C<< $profpp->handle_run_exit() >>
@@ -120,17 +123,17 @@ sub handle_run_exit {
     my $self = shift;
     my $overhead = $self->get_run_time - $self->get_sys_time;
 
-    warn "\n" if $self->{NeedNL} && $self->{NeedNL} != 2;
+    $self->_emit("\n") if $self->{NeedNL} && $self->{NeedNL} != 2;
     $self->{NeedNL} = 3;
 
-    warn "IPC::Run3 child: ",
+    $self->_emit( "IPC::Run3 child: ",
         join( " ", @{$self->get_run_cmd} ),
-        "\n";
-    warn "IPC::Run3 run3()  : ", _t( $self->get_run_time ), "\n",
+        "\n");
+    $self->_emit( "IPC::Run3 run3()  : ", _t( $self->get_run_time ), "\n",
          "IPC::Run3 child   : ", _t( $self->get_sys_time ), "\n",
          "IPC::Run3 overhead: ", _t( $overhead ),
              _pct( $overhead, $self->get_sys_time ),
-             "\n";
+             "\n");
 }
 
 =head1 LIMITATIONS

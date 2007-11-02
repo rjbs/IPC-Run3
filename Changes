@@ -1,9 +1,12 @@
 Changes file for IPC::Run3
 
-0.036	2007-10-08
+0.039	2007-11-01
+  avoid some warnings while testing profiler (thanks, SCOP)
+
+0.038	2007-10-08
   remove use warnings for 5.005 compat (thanks, David Golden)
 
-0.036	2006-09-19
+0.037	2006-09-19
   document license more clearly for META.yml
 
 0.036	2006-09-19
