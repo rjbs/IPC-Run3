@@ -1,5 +1,17 @@
 Changes file for IPC::Run3
 
+0.040	2007-12-26
+	major rewrite of pod: 
+	  - describe all possible forms of redirectors
+	  - list available options
+	  - explain how run3() works
+	fix #31343 by using the three argument form of open() for files;
+	  unfortunately that isn't available before Perl 5.6.0, 
+	  hence "use 5.006_00"; also use lexical filehandles everywhere
+	implement options append_{stdout,stderr}; add test cases
+	edit META.yml so that the profiling modules IPC::Run3::Prof*
+	  (which aren't of general use) won't show on CPAN
+
 0.039	2007-11-01
   avoid some warnings while testing profiler (thanks, SCOP)
 

@@ -35,6 +35,24 @@ sub {
 
 sub {
     ( $in, $out, $err ) = ();
+    $out = "STUFF";
+    run3 [$^X, '-e', 'print "OUT"' ], \undef, \$out, \$err, { append_stdout => 1 };
+    ok $out, "STUFFOUT";
+},
+
+sub {
+    ( $in, $out, $err ) = ();
+    $err = "STUFF";
+    run3 [$^X, '-e', 'print STDERR "OUT"' ], \undef, \$out, \$err, { append_stderr => 1 };
+    ok $out, "";
+},
+
+sub {
+    ok $err, "STUFFOUT";
+},
+
+sub {
+    ( $in, $out, $err ) = ();
     run3 [$^X, '-e', 'print map uc, <>' ], \"in", \$out, \$err;
     ok $out, "IN";
 },
@@ -57,6 +75,35 @@ sub {
     ( $in, $out, $err ) = ();
     run3 [$^X, '-e', 'print map uc, <>' ], [qw( in1 in2 )], \$out;
     ok $out, "IN1IN2";
+},
+
+sub {
+    ( $in, $out, $err ) = ();
+    my @ary;
+    run3 [$^X, '-e', 'print map uc, <>' ], [qw( in1 in2 )], \$out;
+    ok $out, "IN1IN2";
+},
+
+sub {
+    ( $in, $out, $err ) = ();
+    my @out;
+    run3 [$^X, '-e', 'print "OUT1\nOUT2"' ], \undef, \@out, \$err;
+    ok scalar(@out), 2;
+    $out = join('', @out);
+},
+sub {
+    ok $out, "OUT1\nOUT2";
+},
+
+sub {
+    ( $in, $out, $err ) = ();
+    my @out = ("STUFF\n");
+    run3 [$^X, '-e', 'print "OUT1\nOUT2"' ], \undef, \@out, \$err, { append_stdout => 1 };
+    ok scalar(@out), 3;
+    $out = join('', @out);
+},
+sub {
+    ok $out, "STUFF\nOUT1\nOUT2";
 },
 
 sub {
@@ -90,7 +137,17 @@ sub {
 
 sub {
     ( $in, $out, $err ) = ();
-    my @in = qw( in1 in2 );
+    my @out;
+    run3 [$^X, '-e', 'print map uc, <>' ], \"in1\nin2", sub { push @out, shift };
+    ok scalar(@out), 2;
+    $out = join('', @out);
+},
+sub {
+    ok $out, "IN1\nIN2";
+},
+
+sub {
+    ( $in, $out, $err ) = ();
     run3 [$^X, '-e',
         '$|=1; select STDERR; $| = 1; for (<>){print STDOUT uc;print STDERR lc}'
     ], \"in1\nin2\n", \$out,\$out;
@@ -108,7 +165,19 @@ sub {
 
 sub {
     my $fn = "t/test.txt";
-    open FH, ">$fn" or warn "$! opening $fn";
+    unlink $fn or warn "$! unlinking $fn" if -e $fn;
+    open FH, ">", $fn  or warn "$! opening $fn";
+    print FH "STUFF";
+    close FH;
+
+    ( $in, $out, $err ) = ();
+    run3 [$^X, '-e', 'print "OUT"' ], \undef, $fn, { append_stdout => 1 };
+    ok -s $fn, 8;
+},
+
+sub {
+    my $fn = "t/test.txt";
+    open FH, ">", $fn or warn "$! opening $fn";
 
     ( $in, $out, $err ) = ();
     run3 [$^X, '-e', 'print "OUT"' ], \undef, \*FH;
@@ -119,11 +188,11 @@ sub {
 
 sub {
     my $fn = "t/test.txt";
-    open FH, ">$fn" or warn "$! opening $fn";
+    open FH, ">", $fn or warn "$! opening $fn";
     print FH "IN1\nIN2\n";
     close FH;
 
-    open FH, "<$fn" or warn "$! opening $fn";
+    open FH, "<", $fn or warn "$! opening $fn";
 
     ( $in, $out, $err ) = ();
     run3 [$^X, '-e', 'print <>' ], \*FH, \$out;
