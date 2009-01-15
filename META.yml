@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                IPC-Run3
-version:             0.041
+version:             0.042
 abstract:            run a subprocess with input/ouput redirection
 license:             open_source
 author:              Barrie Slaymaker <barries@slaysys.com>
