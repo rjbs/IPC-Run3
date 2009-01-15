@@ -13,5 +13,5 @@ WriteMakefile(
       ($^O =~ /Win32/ ? (Win32 => 0) : ())
     },
     NO_META       => 1,
-    clean => { FILES => "t/test.txt" },
+    clean => { FILES => [ "t/test.txt", "t/utf8.txt" ] },
 );

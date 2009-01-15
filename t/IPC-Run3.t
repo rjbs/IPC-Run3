@@ -108,13 +108,13 @@ sub {
 
 sub {
     ( $in, $out, $err ) = ();
-    run3 [$^X, '-e', 'print map length($_)."[$_]", <>' ], \"in1\nin2", \$out;
+    run3 [$^X, '-e', 'print map { length($_)."[$_]" } <>' ], \"in1\nin2", \$out;
     ok $out, "4[in1\n]3[in2]";
 },
 
 sub {
     ( $in, $out, $err ) = ();
-    run3 [$^X, '-e', 'binmode STDIN; binmode STDOUT; print map length($_)."[$_]", <>' ],
+    run3 [$^X, '-e', 'binmode STDIN; binmode STDOUT; print map { length($_)."[$_]" } <>' ],
         \"in1\nin2", \$out,
         { binmode_stdin => 1 };
     ok $out, "4[in1\n]3[in2]";
@@ -122,7 +122,7 @@ sub {
 
 sub {
     ( $in, $out, $err ) = ();
-    run3 [$^X, '-e', 'binmode STDIN; binmode STDOUT; print map length($_)."[$_]", <>' ],
+    run3 [$^X, '-e', 'binmode STDIN; binmode STDOUT; print map { length($_)."[$_]" } <>' ],
         \"in1\r\nin2", \$out,
         { binmode_stdin => 1, binmode_stdout => 1 };
     ok $out, "5[in1\r\n]3[in2]";
@@ -188,6 +188,7 @@ sub {
 
 sub {
     my $fn = "t/test.txt";
+    unlink $fn or warn "$! unlinking $fn" if -e $fn;
     open FH, ">", $fn or warn "$! opening $fn";
     print FH "IN1\nIN2\n";
     close FH;
@@ -199,6 +200,24 @@ sub {
 
     close FH;
     ok $out, "IN1\nIN2\n";
+},
+
+# check that run3 doesn't die on platforms where system()
+# returns -1 when SIGCHLD is ignored (RT #14272)
+sub {
+    my $system_child_error = eval
+    {
+	local $SIG{CHLD} = "IGNORE";
+	system $^X, '-e', 0;
+	$?;
+    };
+    my $run3_child_error = eval
+    {
+	local $SIG{CHLD} = "IGNORE";
+	run3 [ $^X, '-e', 0 ], \undef, \undef, \undef, { return_if_system_error => 1 };
+	$?;
+    };
+    ok $run3_child_error, $system_child_error;
 },
 );
 

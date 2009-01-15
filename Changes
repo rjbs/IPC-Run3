@@ -1,5 +1,15 @@
 Changes file for IPC::Run3
 
+0.041	2008-08-03
+	Handle arbitrary binmode() layers in "binmode_*" options; for
+	  backward compatibility, any true option that doesn't start
+	  with ":" is treated as ":raw"
+	  NOTE: This does work for the built-in layers, e.g. ":utf8",
+	  but all bets are off for fancier stuff like ":via(...)" .
+	Add an option "return_if_system_error" that causes run3()
+	  to refrain from throwing an exception when system() returns -1
+	  (cf. RT 14272).
+
 0.040	2007-12-26
 	major rewrite of pod: 
 	  - describe all possible forms of redirectors

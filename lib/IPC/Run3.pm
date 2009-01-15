@@ -6,11 +6,11 @@ IPC::Run3 - run a subprocess with input/ouput redirection
 
 =head1 VERSION
 
-version 0.040
+version 0.041
 
 =cut
 
-$VERSION = '0.040';
+$VERSION = '0.041';
 
 =head1 SYNOPSIS
 
@@ -93,21 +93,32 @@ END {
     $profiler->app_exit( scalar gettimeofday() ) if profiling;
 }
 
+sub _binmode {
+    my ( $fh, $mode, $what ) = @_;
+    # if $mode is not given, then default to ":raw", except on Windows,
+    # where we default to ":crlf";
+    # otherwise if a proper layer string was given, use that,
+    # else use ":raw"
+    my $layer = !$mode
+	? (is_win32 ? ":crlf" : ":raw")
+	: ($mode =~ /^:/ ? $mode : ":raw");
+    warn "binmode $what, $layer\n" if debugging >= 2;
+
+    binmode $fh, ":raw" unless $layer eq ":raw";      # remove all layers first
+    binmode $fh, $layer or croak "binmode $layer failed: $!";
+}
+
 sub _spool_data_to_child {
     my ( $type, $source, $binmode_it ) = @_;
 
     # If undef (not \undef) passed, they want the child to inherit
     # the parent's STDIN.
     return undef unless defined $source;
-    warn "binmode()ing STDIN\n" if is_win32 && debugging && $binmode_it;
 
     my $fh;
     if ( ! $type ) {
         open $fh, "<", $source or croak "$!: $source";
-        if ( is_win32 ) {
-            binmode $fh, ":raw"; # Remove all layers
-            binmode $fh, ":crlf" unless $binmode_it;
-        }
+	_binmode($fh, $binmode_it, "STDIN");
         warn "run3(): feeding file '$source' to child STDIN\n"
             if debugging >= 2;
     } elsif ( $type eq "FH" ) {
@@ -118,10 +129,7 @@ sub _spool_data_to_child {
         $fh = $fh_cache{in} ||= tempfile;
         truncate $fh, 0;
         seek $fh, 0, 0;
-        if ( is_win32 ) {
-            binmode $fh, ":raw"; # Remove any previous layers
-            binmode $fh, ":crlf" unless $binmode_it;
-        }
+	_binmode($fh, $binmode_it, "STDIN");
         my $seekit;
         if ( $type eq "SCALAR" ) {
 
@@ -203,11 +211,9 @@ sub _fh_for_child_output {
         truncate $fh, 0;
     }
 
-    if ( is_win32 ) {
-        warn "binmode()ing $what\n" if debugging && $options->{"binmode_$what"};
-        binmode $fh, ":raw";
-        binmode $fh, ":crlf" unless $options->{"binmode_$what"};
-    }
+    my $binmode_it = $options->{"binmode_$what"};
+    _binmode($fh, $binmode_it, uc $what);
+
     return $fh;
 }
 
@@ -316,6 +322,13 @@ sub run3 {
         croak "run3(): command ('')" unless length  $cmd;
     }
 
+    foreach (qw/binmode_stdin binmode_stdout binmode_stderr/) {
+	if (my $mode = $options->{$_}) {
+	    croak qq[option $_ must be a number or a proper layer string: "$mode"]
+		unless $mode =~ /^(:|\d+$)/;
+	}
+    }
+
     my $in_type  = _type $stdin;
     my $out_type = _type $stdout;
     my $err_type = _type $stderr;
@@ -346,7 +359,7 @@ sub run3 {
             $options if defined $stderr;
 
     # this should make perl close these on exceptions
-    local *STDIN_SAVE;
+#    local *STDIN_SAVE;
     local *STDOUT_SAVE;
     local *STDERR_SAVE;
 
@@ -359,6 +372,7 @@ sub run3 {
     open STDERR_SAVE, ">&STDERR" or croak "run3(): $! saving STDERR"
         if defined $err_fh;
 
+    my $errno;
     my $ok = eval {
         # The open() call here seems to not force fd 0 in some cases;
         # I ran in to trouble when using this in VCP, not sure why.
@@ -394,20 +408,19 @@ sub run3 {
                            : @$cmd
               : system $cmd;
 
+	$errno = $!;		# save $!, because later failures will overwrite it
         $sys_exit_time = gettimeofday() if profiling;
-
-        unless ( defined $r && $r != -1 ) {
-            if ( debugging ) {
-                my $err_fh = defined $err_fh ? \*STDERR_SAVE : \*STDERR;
-                print $err_fh "run3(): system() error $!\n"
-            }
-            die $!;
-        }
-
         if ( debugging ) {
             my $err_fh = defined $err_fh ? \*STDERR_SAVE : \*STDERR;
-            print $err_fh "run3(): \$? is $?\n"
+	    if ( defined $r && $r != -1 ) {
+		print $err_fh "run3(): \$? is $?\n";
+	    } else {
+		print $err_fh "run3(): \$? is $?, \$! is $errno\n";
+	    }
         }
+
+        die $! if defined $r && $r == -1 && !$options->{return_if_system_error};
+
         1;
     };
     my $x = $@;
@@ -442,6 +455,8 @@ sub run3 {
        scalar gettimeofday() 
     ) if profiling;
 
+    $! = $errno;		# restore $! from system()
+
     return 1;
 }
 
@@ -459,8 +474,16 @@ how the child's corresponding filehandle
 Because the redirects come last, this allows C<STDOUT> and C<STDERR> to default
 to the parent's by just not specifying them -- a common use case.
 
-C<run3> returns true if the command executes and throws an exception otherwise.
+C<run3> throws an exception if the wrapped C<system> call returned -1
+or anything went wrong with C<run3>'s processing of filehandles.
+Otherwise it returns true. 
 It leaves C<$?> intact for inspection of exit and wait status.
+
+Note that a true return value from C<run3> doesn't mean that the command
+had a successful exit code. Hence you should always check C<$?>.
+
+See L</%options> for an option to handle the case of C<system>
+returning -1 yourself.
 
 =head3 C<$cmd>
 
@@ -593,11 +616,17 @@ keys are supported:
 
 =item C<binmode_stdin>, C<binmode_stdout>, C<binmode_stderr>
 
-If their value is true then the corresponding
+The value must a "layer" as described in L<perlfunc/binmode>.
+If specified the corresponding
 parameter C<$stdin>, C<$stdout> or C<$stderr>, resp., operates
-in "binary" mode (cf. L<perlfunc/binmode>).
-The default is to operate in "text" mode.
-(This is only relevant for platforms where these modes differ.)
+with the given layer. 
+
+For backward compatibility, a true value that doesn't start with ":"
+(e.g. a number) is interpreted as ":raw". If the value is false
+or not specified, the default is ":crlf" on Windows and ":raw" otherwise.
+
+Don't expect that values other than the built-in layers ":raw", ":crlf",
+and (on newer Perls) ":bytes", ":utf8", ":encoding(...)" will work.
 
 =item C<append_stdout>, C<append_stderr>
 
@@ -609,6 +638,14 @@ is opened in append mode), a SCALAR reference (the output is
 appended to the previous contents of the string) 
 or an ARRAY reference (the output is C<push>ed onto the 
 previous contents of the array).
+
+=item C<return_if_system_error>
+
+If this is true C<run3> does B<not> throw an exception if C<system>
+returns -1 (cf. L<perlfunc/system> for possible
+failure scenarios.), but returns true instead.
+In this case C<$?> has the value -1 and C<$!> 
+contains the errno of the failing C<system> call.
 
 =back 
 
