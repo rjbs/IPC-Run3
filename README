@@ -1,4 +1,4 @@
-README for IPC-Run3
+README for IPC-Run3 0.043
 
 IPC::Run3 - run a subprocess in batch mode (a la system) on Unix, Win32, etc.
 

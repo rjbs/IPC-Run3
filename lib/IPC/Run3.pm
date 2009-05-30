@@ -1,4 +1,6 @@
 package IPC::Run3;
+BEGIN { require 5.006_000; } # i.e. 5.6.0
+use strict;
 
 =head1 NAME
 
@@ -6,11 +8,11 @@ IPC::Run3 - run a subprocess with input/ouput redirection
 
 =head1 VERSION
 
-version 0.041
+version 0.043
 
 =cut
 
-$VERSION = '0.042';
+our $VERSION = '0.043';
 
 =head1 SYNOPSIS
 
@@ -31,14 +33,11 @@ to spool input to and output from the child command.)
 
 =cut
 
-use 5.006_000;				# i.e. v5.6.0
-
-@EXPORT = qw( run3 );
-%EXPORT_TAGS = ( all => \@EXPORT );
-@ISA = qw( Exporter );
 use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT = qw( run3 );
+our %EXPORT_TAGS = ( all => \@EXPORT );
 
-use strict;
 use constant debugging => $ENV{IPCRUN3DEBUG} || $ENV{IPCRUNDEBUG} || 0;
 use constant profiling => $ENV{IPCRUN3PROFILE} || $ENV{IPCRUNPROFILE} || 0;
 use constant is_win32  => 0 <= index $^O, "Win32";
