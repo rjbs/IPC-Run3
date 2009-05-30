@@ -23,4 +23,3 @@ t/fork.t
 t/pod-coverage.t
 t/pod.t
 t/utf8.t
-META.yml                                 Module meta-data (added by MakeMaker)

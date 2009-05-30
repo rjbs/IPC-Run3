@@ -1,5 +1,10 @@
 Changes file for IPC::Run3
 
+0.043	2009-05-30
+	No code changes
+	add repository location to META.yml
+	avoid hand-written META.yml by using META_MERGE
+
 0.042	2008-08-09
 	No code changes
 	Rewrite a test in t/utf8.t that runs afoul of a misfeature
