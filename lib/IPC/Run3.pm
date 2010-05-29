@@ -284,7 +284,12 @@ sub _read_child_output_fh {
 
 sub _type {
     my ( $redir ) = @_;
-    return "FH" if eval { $redir->isa("IO::Handle") };
+
+    return "FH" if eval { 
+        local $SIG{'__DIE__'};
+        $redir->isa("IO::Handle") 
+    };
+
     my $type = ref $redir;
     return $type eq "GLOB" ? "FH" : $type;
 }
