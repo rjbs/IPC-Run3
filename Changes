@@ -1,5 +1,9 @@
 Changes file for IPC::Run3
 
+0.044 2010-08-22
+  ignore user-defined __DIE__ handler in _type (Jeff Lavallee)
+  Added test for __DIE__ handler behavior
+
 0.043	2009-05-30
 	No code changes
 	add repository location to META.yml
