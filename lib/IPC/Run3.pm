@@ -24,7 +24,7 @@ our $VERSION = '0.043';
 
 This module allows you to run a subprocess and redirect stdin, stdout,
 and/or stderr to files and perl data structures.  It aims to satisfy 99% of the
-need for using C<system>, C<qx>, and C<open3> 
+need for using C<system>, C<qx>, and C<open3>
 with a simple, extremely Perlish API.
 
 Speed, simplicity, and portability are paramount.  (That's speed of Perl code;
@@ -99,8 +99,8 @@ sub _binmode {
     # otherwise if a proper layer string was given, use that,
     # else use ":raw"
     my $layer = !$mode
-	? (is_win32 ? ":crlf" : ":raw")
-	: ($mode =~ /^:/ ? $mode : ":raw");
+       ? (is_win32 ? ":crlf" : ":raw")
+       : ($mode =~ /^:/ ? $mode : ":raw");
     warn "binmode $what, $layer\n" if debugging >= 2;
 
     binmode $fh, ":raw" unless $layer eq ":raw";      # remove all layers first
@@ -117,7 +117,7 @@ sub _spool_data_to_child {
     my $fh;
     if ( ! $type ) {
         open $fh, "<", $source or croak "$!: $source";
-	_binmode($fh, $binmode_it, "STDIN");
+       _binmode($fh, $binmode_it, "STDIN");
         warn "run3(): feeding file '$source' to child STDIN\n"
             if debugging >= 2;
     } elsif ( $type eq "FH" ) {
@@ -128,7 +128,7 @@ sub _spool_data_to_child {
         $fh = $fh_cache{in} ||= tempfile;
         truncate $fh, 0;
         seek $fh, 0, 0;
-	_binmode($fh, $binmode_it, "STDIN");
+       _binmode($fh, $binmode_it, "STDIN");
         my $seekit;
         if ( $type eq "SCALAR" ) {
 
@@ -189,7 +189,7 @@ sub _fh_for_child_output {
 
         $fh = $fh_cache{nul} ||= do {
             open $fh, ">", File::Spec->devnull;
-	    $fh;
+           $fh;
         };
     } elsif ( $type eq "FH" ) {
         $fh = $dest;
@@ -199,8 +199,8 @@ sub _fh_for_child_output {
         warn "run3(): feeding child $what to file '$dest'\n"
             if debugging >= 2;
 
-        open $fh, $options->{"append_$what"} ? ">>" : ">", $dest 
-	    or croak "$!: $dest";
+        open $fh, $options->{"append_$what"} ? ">>" : ">", $dest
+           or croak "$!: $dest";
     } else {
         warn "run3(): capturing child $what\n"
             if debugging >= 2;
@@ -229,8 +229,8 @@ sub _read_child_output_fh {
 
         # two read()s are used instead of 1 so that the first will be
         # logged even it reads 0 bytes; the second won't.
-        my $count = read $fh, $$dest, 10_000, 
-	    $options->{"append_$what"} ? length $$dest : 0;
+        my $count = read $fh, $$dest, 10_000,
+           $options->{"append_$what"} ? length $$dest : 0;
         while (1) {
             croak "$! reading child $what from temp file"
                 unless defined $count;
@@ -245,11 +245,11 @@ sub _read_child_output_fh {
             $count = read $fh, $$dest, 10_000, length $$dest;
         }
     } elsif ( $type eq "ARRAY" ) {
-	if ($options->{"append_$what"}) {
-	    push @$dest, <$fh>;
-	} else {
-	    @$dest = <$fh>;
-	}
+       if ($options->{"append_$what"}) {
+           push @$dest, <$fh>;
+       } else {
+           @$dest = <$fh>;
+       }
         if ( debugging >= 2 ) {
             my $count = 0;
             $count += length for @$dest;
@@ -285,9 +285,9 @@ sub _read_child_output_fh {
 sub _type {
     my ( $redir ) = @_;
 
-    return "FH" if eval { 
+    return "FH" if eval {
         local $SIG{'__DIE__'};
-        $redir->isa("IO::Handle") 
+        $redir->isa("IO::Handle")
     };
 
     my $type = ref $redir;
@@ -311,8 +311,8 @@ sub run3 {
 
     my ( $cmd, $stdin, $stdout, $stderr ) = @_;
 
-    print STDERR "run3(): running ", 
-       join( " ", map "'$_'", ref $cmd ? @$cmd : $cmd ), 
+    print STDERR "run3(): running ",
+       join( " ", map "'$_'", ref $cmd ? @$cmd : $cmd ),
        "\n"
        if debugging;
 
@@ -327,10 +327,10 @@ sub run3 {
     }
 
     foreach (qw/binmode_stdin binmode_stdout binmode_stderr/) {
-	if (my $mode = $options->{$_}) {
-	    croak qq[option $_ must be a number or a proper layer string: "$mode"]
-		unless $mode =~ /^(:|\d+$)/;
-	}
+       if (my $mode = $options->{$_}) {
+           croak qq[option $_ must be a number or a proper layer string: "$mode"]
+              unless $mode =~ /^(:|\d+$)/;
+       }
     }
 
     my $in_type  = _type $stdin;
@@ -338,12 +338,12 @@ sub run3 {
     my $err_type = _type $stderr;
 
     if ($fh_cache_pid != $$) {
-	# fork detected, close all cached filehandles and clear the cache
-	close $_ foreach values %fh_cache;
-	%fh_cache = ();
-	$fh_cache_pid = $$;
+       # fork detected, close all cached filehandles and clear the cache
+       close $_ foreach values %fh_cache;
+       %fh_cache = ();
+       $fh_cache_pid = $$;
     }
-    
+
     # This routine procedes in stages so that a failure in an early
     # stage prevents later stages from running, and thus from needing
     # cleanup.
@@ -412,15 +412,15 @@ sub run3 {
                            : @$cmd
               : system $cmd;
 
-	$errno = $!;		# save $!, because later failures will overwrite it
+       $errno = $!;              # save $!, because later failures will overwrite it
         $sys_exit_time = gettimeofday() if profiling;
         if ( debugging ) {
             my $err_fh = defined $err_fh ? \*STDERR_SAVE : \*STDERR;
-	    if ( defined $r && $r != -1 ) {
-		print $err_fh "run3(): \$? is $?\n";
-	    } else {
-		print $err_fh "run3(): \$? is $?, \$! is $errno\n";
-	    }
+           if ( defined $r && $r != -1 ) {
+              print $err_fh "run3(): \$? is $?\n";
+           } else {
+              print $err_fh "run3(): \$? is $?, \$! is $errno\n";
+           }
         }
 
         die $! if defined $r && $r == -1 && !$options->{return_if_system_error};
@@ -456,10 +456,10 @@ sub run3 {
        $run_call_time,
        $sys_call_time,
        $sys_exit_time,
-       scalar gettimeofday() 
+       scalar gettimeofday()
     ) if profiling;
 
-    $! = $errno;		# restore $! from system()
+    $! = $errno;              # restore $! from system()
 
     return 1;
 }
@@ -472,22 +472,21 @@ __END__
 
 All parameters after C<$cmd> are optional.
 
-The parameters C<$stdin>, C<$stdout> and C<$stderr> indicate
-how the child's corresponding filehandle 
-(C<STDIN>, C<STDOUT> and C<STDERR>, resp.) will be redirected.
-Because the redirects come last, this allows C<STDOUT> and C<STDERR> to default
-to the parent's by just not specifying them -- a common use case.
+The parameters C<$stdin>, C<$stdout> and C<$stderr> indicate how the child's
+corresponding filehandle (C<STDIN>, C<STDOUT> and C<STDERR>, resp.) will be
+redirected.  Because the redirects come last, this allows C<STDOUT> and
+C<STDERR> to default to the parent's by just not specifying them -- a common
+use case.
 
-C<run3> throws an exception if the wrapped C<system> call returned -1
-or anything went wrong with C<run3>'s processing of filehandles.
-Otherwise it returns true. 
-It leaves C<$?> intact for inspection of exit and wait status.
+C<run3> throws an exception if the wrapped C<system> call returned -1 or
+anything went wrong with C<run3>'s processing of filehandles.  Otherwise it
+returns true.  It leaves C<$?> intact for inspection of exit and wait status.
 
-Note that a true return value from C<run3> doesn't mean that the command
-had a successful exit code. Hence you should always check C<$?>.
+Note that a true return value from C<run3> doesn't mean that the command had a
+successful exit code. Hence you should always check C<$?>.
 
-See L</%options> for an option to handle the case of C<system>
-returning -1 yourself.
+See L</%options> for an option to handle the case of C<system> returning -1
+yourself.
 
 =head3 C<$cmd>
 
@@ -504,8 +503,8 @@ the latter form).
 
 =head3 C<$stdin>, C<$stdout>, C<$stderr>
 
-The parameters C<$stdin>, C<$stdout> and C<$stderr> 
-can take one of the following forms:
+The parameters C<$stdin>, C<$stdout> and C<$stderr> can take one of the
+following forms:
 
 =over 4
 
@@ -518,9 +517,8 @@ The child inherits the corresponding filehandle from the parent.
 
 =item C<\undef>
 
-The child's filehandle is redirected from or to the
-local equivalent of C</dev/null> (as returned by 
-C<< File::Spec->devnull() >>).
+The child's filehandle is redirected from or to the local equivalent of
+C</dev/null> (as returned by C<< File::Spec->devnull() >>).
 
   run3 \@cmd, \undef, $stdout, $stderr; # child reads from /dev/null
 
@@ -549,25 +547,25 @@ The filehandle is inherited by the child.
   print $fh "epilogue\n";
   close $fh;
 
-=item a SCALAR reference 
+=item a SCALAR reference
 
 The referenced scalar is treated as a string to be read from or
 written to. In the latter case, the previous content of the string
 is overwritten.
 
   my $out;
-  run3 \@cmd, \undef, \$out;           # child writes into string 
+  run3 \@cmd, \undef, \$out;           # child writes into string
   run3 \@cmd, \<<EOF;                  # child reads from string (can use "here" notation)
   Input
-  to 
+  to
   child
   EOF
 
-=item an ARRAY reference 
+=item an ARRAY reference
 
 For C<$stdin>, the elements of C<@$stdin> are simply spooled to the child.
 
-For C<$stdout> or C<$stderr>, the child's corresponding file descriptor 
+For C<$stdout> or C<$stderr>, the child's corresponding file descriptor
 is read line by line (as determined by the current setting of C<$/>)
 into C<@$stdout> or C<@$stderr>, resp. The previous content of the array
 is overwritten.
@@ -575,13 +573,13 @@ is overwritten.
   my @lines;
   run3 \@cmd, \undef, \@lines;         # child writes into array
 
-=item a CODE reference 
+=item a CODE reference
 
-For C<$stdin>, C<&$stdin> will be called repeatedly (with no arguments) and 
+For C<$stdin>, C<&$stdin> will be called repeatedly (with no arguments) and
 the return values are spooled to the child. C<&$stdin> must signal the end of
-input by returning C<undef>. 
+input by returning C<undef>.
 
-For C<$stdout> or C<$stderr>, the child's corresponding file descriptor 
+For C<$stdout> or C<$stderr>, the child's corresponding file descriptor
 is read line by line (as determined by the current setting of C<$/>)
 and C<&$stdout> or C<&$stderr>, resp., is called with the contents of the line.
 Note that there's no end-of-file indication.
@@ -590,7 +588,7 @@ Note that there's no end-of-file indication.
   sub producer {
     return $i < 10 ? "line".$i++."\n" : undef;
   }
-    
+
   run3 \@cmd, \&producer;              # child reads 10 lines
 
 Note that this form of redirecting the child's I/O doesn't imply
@@ -611,19 +609,17 @@ C<STDERR>, collecting all into file "foo.txt" or C<$both>.
 
 =head3 C<\%options>
 
-The last parameter, C<\%options>, must be a hash reference if present. 
+The last parameter, C<\%options>, must be a hash reference if present.
 
-Currently the following
-keys are supported: 
+Currently the following keys are supported:
 
 =over 4
 
 =item C<binmode_stdin>, C<binmode_stdout>, C<binmode_stderr>
 
-The value must a "layer" as described in L<perlfunc/binmode>.
-If specified the corresponding
-parameter C<$stdin>, C<$stdout> or C<$stderr>, resp., operates
-with the given layer. 
+The value must a "layer" as described in L<perlfunc/binmode>.  If specified the
+corresponding parameter C<$stdin>, C<$stdout> or C<$stderr>, resp., operates
+with the given layer.
 
 For backward compatibility, a true value that doesn't start with ":"
 (e.g. a number) is interpreted as ":raw". If the value is false
@@ -634,24 +630,21 @@ and (on newer Perls) ":bytes", ":utf8", ":encoding(...)" will work.
 
 =item C<append_stdout>, C<append_stderr>
 
-If their value is true then the corresponding
-parameter C<$stdout> or C<$stderr>, resp., will append the child's output
-to the existing "contents" of the redirector. This only makes
-sense if the redirector is a simple scalar (the corresponding file
-is opened in append mode), a SCALAR reference (the output is 
-appended to the previous contents of the string) 
-or an ARRAY reference (the output is C<push>ed onto the 
-previous contents of the array).
+If their value is true then the corresponding parameter C<$stdout> or
+C<$stderr>, resp., will append the child's output to the existing "contents" of
+the redirector. This only makes sense if the redirector is a simple scalar (the
+corresponding file is opened in append mode), a SCALAR reference (the output is
+appended to the previous contents of the string) or an ARRAY reference (the
+output is C<push>ed onto the previous contents of the array).
 
 =item C<return_if_system_error>
 
-If this is true C<run3> does B<not> throw an exception if C<system>
-returns -1 (cf. L<perlfunc/system> for possible
-failure scenarios.), but returns true instead.
-In this case C<$?> has the value -1 and C<$!> 
-contains the errno of the failing C<system> call.
+If this is true C<run3> does B<not> throw an exception if C<system> returns -1
+(cf. L<perlfunc/system> for possible failure scenarios.), but returns true
+instead.  In this case C<$?> has the value -1 and C<$!> contains the errno of
+the failing C<system> call.
 
-=back 
+=back
 
 =head1 HOW IT WORKS
 
@@ -659,8 +652,8 @@ contains the errno of the failing C<system> call.
 
 =item (1)
 
-For each redirector C<$stdin>, C<$stdout>, and C<$stderr>, 
-C<run3()> furnishes a filehandle:
+For each redirector C<$stdin>, C<$stdout>, and C<$stderr>, C<run3()> furnishes
+a filehandle:
 
 =over 4
 
@@ -675,8 +668,8 @@ in the appropriate mode
 
 =item *
 
-in all other cases, C<run3()> opens a temporary file 
-(using L<tempfile|Temp/tempfile>)
+in all other cases, C<run3()> opens a temporary file (using
+L<tempfile|Temp/tempfile>)
 
 =back
 
@@ -694,8 +687,8 @@ to C<STDIN>, C<STDOUT> and C<STDERR>, resp.
 
 =item (4)
 
-C<run3()> runs the child by invoking L<system|perlfunc/system> 
-with C<$cmd> as specified above.
+C<run3()> runs the child by invoking L<system|perlfunc/system> with C<$cmd> as
+specified above.
 
 =item (5)
 
@@ -704,8 +697,8 @@ C<run3()> restores the parent's C<STDIN>, C<STDOUT> and C<STDERR> saved in step 
 =item (6)
 
 If C<run3()> opened a temporary file for C<$stdout> or C<$stderr> in step (1),
-it rewinds it and reads back its contents using the specified method 
-(either to a string, an array or by calling a function).
+it rewinds it and reads back its contents using the specified method (either to
+a string, an array or by calling a function).
 
 =item (7)
 
@@ -723,13 +716,13 @@ Often uses intermediate files (determined by File::Temp, and thus by the
 File::Spec defaults and the TMPDIR env. variable) for speed, portability and
 simplicity.
 
-Use extrem caution when using C<run3> in a threaded environment if
-concurrent calls of C<run3> are possible. Most likely, I/O from different
-invocations will get mixed up. The reason is that in most thread 
-implementations all threads in a process share the same STDIN/STDOUT/STDERR.
-Known failures are Perl ithreads on Linux and Win32. Note that C<fork>
-on Win32 is emulated via Win32 threads and hence I/O mix up is possible
-between forked children here (C<run3> is "fork safe" on Unix, though).
+Use extrem caution when using C<run3> in a threaded environment if concurrent
+calls of C<run3> are possible. Most likely, I/O from different invocations will
+get mixed up. The reason is that in most thread implementations all threads in
+a process share the same STDIN/STDOUT/STDERR.  Known failures are Perl ithreads
+on Linux and Win32. Note that C<fork> on Win32 is emulated via Win32 threads
+and hence I/O mix up is possible between forked children here (C<run3> is "fork
+safe" on Unix, though).
 
 =head1 DEBUGGING
 
@@ -753,31 +746,32 @@ Here's how it stacks up to existing APIs:
 
 =over
 
-=item + 
+=item *
 
-redirects more than one file descriptor
+better: redirects more than one file descriptor
 
-=item + 
+=item *
 
-returns TRUE on success, FALSE on failure
+better: returns TRUE on success, FALSE on failure
 
-=item + 
+=item *
 
-throws an error if problems occur in the parent process (or the pre-exec child)
+better: throws an error if problems occur in the parent process (or the
+pre-exec child)
 
-=item + 
+=item *
 
-allows a very perlish interface to Perl data structures and subroutines
+better: allows a very perlish interface to Perl data structures and subroutines
 
-=item + 
+=item *
 
-allows 1 word invocations to avoid the shell easily:
+better: allows 1 word invocations to avoid the shell easily:
 
  run3 ["foo"];  # does not invoke shell
 
-=item - 
+=item *
 
-does not return the exit code, leaves it in $?
+worse: does not return the exit code, leaves it in $?
 
 =back
 
@@ -785,25 +779,25 @@ does not return the exit code, leaves it in $?
 
 =over
 
-=item + 
+=item *
 
-no lengthy, error prone polling/select loop needed
+better: no lengthy, error prone polling/select loop needed
 
-=item +
+=item *
 
-hides OS dependancies
+better: hides OS dependancies
 
-=item + 
+=item *
 
-allows SCALAR, ARRAY, and CODE references to source and sink I/O
+better: allows SCALAR, ARRAY, and CODE references to source and sink I/O
 
-=item + 
+=item *
 
-I/O parameter order is like C<open3()>  (not like C<open2()>).
+better: I/O parameter order is like C<open3()>  (not like C<open2()>).
 
-=item - 
+=item *
 
-does not allow interaction with the subprocess
+worse: does not allow interaction with the subprocess
 
 =back
 
@@ -811,27 +805,27 @@ does not allow interaction with the subprocess
 
 =over
 
-=item + 
+=item *
 
-smaller, lower overhead, simpler, more portable
+better: smaller, lower overhead, simpler, more portable
 
-=item +
+=item *
 
-no select() loop portability issues
+better: no select() loop portability issues
 
-=item +
+=item *
 
-does not fall prey to Perl closure leaks
+better: does not fall prey to Perl closure leaks
 
-=item -
+=item *
 
-does not allow interaction with the subprocess (which
-IPC::Run::run() allows by redirecting subroutines)
+worse: does not allow interaction with the subprocess (which IPC::Run::run()
+allows by redirecting subroutines)
 
-=item -
+=item *
 
-lacks many features of C<IPC::Run::run()> (filters, pipes,
-redirects, pty support)
+worse: lacks many features of C<IPC::Run::run()> (filters, pipes, redirects,
+pty support)
 
 =back
 
@@ -848,8 +842,8 @@ any version.
 
 Barrie Slaymaker E<lt>C<barries@slaysys.com>E<gt>
 
-Ricardo SIGNES E<lt>C<rjbs@cpan.org>E<gt> performed some routine maintenance in
-2005, thanks to help from the following ticket and/or patch submitters: Jody
-Belka, Roderich Schupp, David Morel, and anonymous others.
+Ricardo SIGNES E<lt>C<rjbs@cpan.org>E<gt> performed routine maintenance since
+2010, thanks to help from the following ticket and/or patch submitters: Jody
+Belka, Roderich Schupp, David Morel, Jeff Lavallee, and anonymous others.
 
 =cut
