@@ -785,7 +785,7 @@ better: no lengthy, error prone polling/select loop needed
 
 =item *
 
-better: hides OS dependancies
+better: hides OS dependencies
 
 =item *
 
