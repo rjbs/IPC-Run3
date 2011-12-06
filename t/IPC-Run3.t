@@ -205,19 +205,28 @@ sub {
 # check that run3 doesn't die on platforms where system()
 # returns -1 when SIGCHLD is ignored (RT #14272)
 sub {
-    my $system_child_error = eval
-    {
-	local $SIG{CHLD} = "IGNORE";
-	system $^X, '-e', 0;
-	$?;
-    };
-    my $run3_child_error = eval
-    {
-	local $SIG{CHLD} = "IGNORE";
-	run3 [ $^X, '-e', 0 ], \undef, \undef, \undef, { return_if_system_error => 1 };
-	$?;
-    };
-    ok $run3_child_error, $system_child_error;
+  use Config;
+
+  if ( $^O eq 'openbsd' and $Config{'useithreads'} ) {
+    ok(1); # Bug in OpenBSD threaded perls causes a hang
+  }
+  else {
+
+      my $system_child_error = eval
+      {
+	      local $SIG{CHLD} = "IGNORE";
+	      system $^X, '-e', 0;
+	      $?;
+      };
+      my $run3_child_error = eval
+      {
+	      local $SIG{CHLD} = "IGNORE";
+	      run3 [ $^X, '-e', 0 ], \undef, \undef, \undef, { return_if_system_error => 1 };
+	      $?;
+      };
+      ok $run3_child_error, $system_child_error;
+
+  }
 },
 );
 

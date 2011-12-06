@@ -18,6 +18,7 @@ t/IPC-Run3-ProfPP.t
 t/IPC-Run3-ProfReporter.t
 t/IPC-Run3-profiling.t
 t/IPC-Run3.t
+t/die_handler.t
 t/fd_leak.t
 t/fork.t
 t/pod-coverage.t
