@@ -1,5 +1,9 @@
 Changes file for IPC::Run3
 
+0.045 2011-12-23
+  skip a test that tickles an OpenBSD bug and hangs the process (thanks,
+  BinGOs)
+
 0.044 2010-08-22
   ignore user-defined __DIE__ handler in _type (Jeff Lavallee)
   Added test for __DIE__ handler behavior
@@ -14,7 +18,7 @@ Changes file for IPC::Run3
 	Rewrite a test in t/utf8.t that runs afoul of a misfeature
 	  in Perl 5.8.0 (turn on ":utf8" by default on all filehandles
 	  when running in a UTF8 locale; fixed since 5.8.1)
-	
+
 0.041	2008-08-03
 	Handle arbitrary binmode() layers in "binmode_*" options; for
 	  backward compatibility, any true option that doesn't start
@@ -26,12 +30,12 @@ Changes file for IPC::Run3
 	  (cf. RT 14272).
 
 0.040	2007-12-26
-	major rewrite of pod: 
+	major rewrite of pod:
 	  - describe all possible forms of redirectors
 	  - list available options
 	  - explain how run3() works
 	fix #31343 by using the three argument form of open() for files;
-	  unfortunately that isn't available before Perl 5.6.0, 
+	  unfortunately that isn't available before Perl 5.6.0,
 	  hence "use 5.006_00"; also use lexical filehandles everywhere
 	implement options append_{stdout,stderr}; add test cases
 	edit META.yml so that the profiling modules IPC::Run3::Prof*
@@ -64,28 +68,28 @@ Changes file for IPC::Run3
 	  (from the libwin32 CPAN distribution) as omitted these
 	  parameters from the Perl wrapper
 	add a note to the documentation about the problems with
-	  concurrent calls to run3 in a threaded environment 
+	  concurrent calls to run3 in a threaded environment
 	  (incl. fork() on Win32)
 	make sure all tests run with warnings on
 
 0.033	2005-11-15
 	make documentation in IPC/Run3/ProfReporter.pm comply with
 	  older versions of Pod::Coverage (fixes bug #15749)
-	new version of t/fork.t that will work on Windows 
+	new version of t/fork.t that will work on Windows
 	  (there are still unresolved issues on Cygwin)
 	switch t/fd_leak.t to use Test::More and relax file descriptor check
-	  to "same or fewer fd's after the call to run3 than before", 
+	  to "same or fewer fd's after the call to run3 than before",
 	  because Darwin 7.2 sometimes actually report fewer fd's
 	  (fixes bug #15741)
-	extricated some dead code from IPC/Run3.pm that 
+	extricated some dead code from IPC/Run3.pm that
 	  resulted in 6 unused file descriptors
 	fix call to binmode missing a filehandle in IPC/Run3.pm
         fix warnings in test scripts
 
 0.032	2005-10-19
         comaint granted to RSCHUPP (thanks, barry!)
-        fix bug #15003 "Data corruption with fork when both parent 
-          and child use run3": 
+        fix bug #15003 "Data corruption with fork when both parent
+          and child use run3":
           - purge %fh_cache when we detect that a fork has happened
           - add t/fork.t to detect "crossover" between child processes
           - fix (and test) only works on Unix, Windows has more
@@ -108,7 +112,7 @@ Changes file for IPC::Run3
 
 0.010   2004-03-09 01:46:11 EST
         POD cleaned up
-        shell quoting improved for win32 
+        shell quoting improved for win32
 
 0.009   2003-09-26 15:44:18 EDT
         CRLF bugs fixed on WinNT, WinXP, Win2K
@@ -128,7 +132,7 @@ Changes file for IPC::Run3
 
 0.003   2003-02-11 15:47:59 EST
         use dup2() to overwrite STDIN for the child
-        Added $ENV{IPCRUN3DEBUG} (and, silently, IPCRUNDEBUG) 
+        Added $ENV{IPCRUN3DEBUG} (and, silently, IPCRUNDEBUG)
         debugging support.  TODO: Add more debugging warnings.
 
 0.000_1 2003-02-04 15:09:30
