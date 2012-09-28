@@ -423,7 +423,7 @@ sub run3 {
            }
         }
 
-        die $! if defined $r && $r == -1 && !$options->{return_if_system_error};
+        croak $! if defined $r && $r == -1 && !$options->{return_if_system_error};
 
         1;
     };
