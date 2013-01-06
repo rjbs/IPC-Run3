@@ -54,6 +54,7 @@ BEGIN {
 use Carp qw( croak );
 use File::Temp qw( tempfile );
 use POSIX qw( dup dup2 );
+use Scalar::Util qw( reftype openhandle );
 
 # We cache the handles of our temp files in order to
 # keep from having to incur the (largish) overhead of File::Temp
@@ -167,16 +168,8 @@ sub _spool_data_to_child {
                 print $fh $data or die "$! writing to temp file";
                 $seekit = length $data;
             }
-        } elsif ( $type eq "IO::String" ) {
-            warn "run3(): feeding IO::String to child STDIN\n"
-		if debugging >= 2;
-            while (1) {
-                my $data = $source->getline;
-                last unless defined $data;
-                print $fh $data or die "$! writing to temp file";
-                $seekit = length $data;
-            }
-
+        } else {
+            croak "Don't know what to do with a $type";
         }
 
         seek $fh, 0, 0 or croak "$! seeking on temp file for child's stdin"
@@ -286,25 +279,6 @@ sub _read_child_output_fh {
 
             $dest->( $_ );
         }
-    } elsif ( $type eq "IO::String" ) {
-        warn "run3(): capturing child $what to IO::String\n"
-            if debugging >= 3;
-
-	#my $pos = $dest->getpos;
-        local $_;
-        while ( <$fh> ) {
-            warn
-                "run3(): read ",
-                length,
-                " bytes from child $what",
-                debugging >= 3 ? ( ": '", $_, "'" ) : (),
-                "\n"
-                if debugging >= 2;
-
-            $dest->print( $_ );
-        }
-	# rewind IO::String to where we startet to write unto it
-	#$dest->setpos($pos);
     } else {
         croak "run3() can't redirect child $what to a $type";
     }
@@ -319,7 +293,7 @@ sub _type {
         $redir->isa("IO::Handle")
     };
 
-    my $type = ref $redir;
+    my $type = openhandle $redir ? reftype $redir : ref $redir;
     return $type eq "GLOB" ? "FH" : $type;
 }
 
