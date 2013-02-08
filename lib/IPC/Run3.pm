@@ -716,7 +716,7 @@ Often uses intermediate files (determined by File::Temp, and thus by the
 File::Spec defaults and the TMPDIR env. variable) for speed, portability and
 simplicity.
 
-Use extrem caution when using C<run3> in a threaded environment if concurrent
+Use extreme caution when using C<run3> in a threaded environment if concurrent
 calls of C<run3> are possible. Most likely, I/O from different invocations will
 get mixed up. The reason is that in most thread implementations all threads in
 a process share the same STDIN/STDOUT/STDERR.  Known failures are Perl ithreads
