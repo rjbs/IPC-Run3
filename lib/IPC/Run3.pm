@@ -44,7 +44,7 @@ use constant is_win32  => 0 <= index $^O, "Win32";
 
 BEGIN {
    if ( is_win32 ) {
-      eval "use Win32 qw( GetOSName ); 1" or die $@;
+      eval "use Win32 qw( GetOSName ); use Win32::ShellQuote qw(quote_native); 1" or die $@;
    }
 }
 
@@ -400,16 +400,7 @@ sub run3 {
         $sys_call_time = gettimeofday() if profiling;
 
         my $r = ref $cmd
-              ? system { $cmd->[0] }
-                       is_win32
-                           ? map {
-                                 # Probably need to offer a win32 escaping
-                                 # option, every command may be different.
-                                 ( my $s = $_ ) =~ s/"/"""/g;
-                                 $s = qq{"$s"};
-                                 $s;
-                             } @$cmd
-                           : @$cmd
+              ? system { $cmd->[0] } is_win32 ? quote_native( @$cmd ) : @$cmd
               : system $cmd;
 
        $errno = $!;              # save $!, because later failures will overwrite it
