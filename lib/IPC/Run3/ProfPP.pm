@@ -1,6 +1,6 @@
 package IPC::Run3::ProfPP;
 
-$VERSION = 0.045;
+$VERSION = 0.046;
 
 =head1 NAME
 

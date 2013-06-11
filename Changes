@@ -1,7 +1,9 @@
 Changes file for IPC::Run3
 
-0.046 ?
+0.046 2013-06-11
   replace a die with a croak (thanks, Mike Doherty)
+
+  typo fixes in documentation (thanks, David Steinbrunner)
 
 0.045 2011-12-23
   skip a test that tickles an OpenBSD bug and hangs the process (thanks,

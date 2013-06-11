@@ -8,11 +8,11 @@ IPC::Run3 - run a subprocess with input/ouput redirection
 
 =head1 VERSION
 
-version 0.045
+version 0.046
 
 =cut
 
-our $VERSION = '0.045';
+our $VERSION = '0.046';
 
 =head1 SYNOPSIS
 
