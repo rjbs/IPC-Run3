@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-$VERSION = 0.046;
+$VERSION = 0.047;
 
 =head1 NAME
 

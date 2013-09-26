@@ -1,6 +1,6 @@
 package IPC::Run3::ProfLogger;
 
-$VERSION = 0.046;
+$VERSION = 0.047;
 
 =head1 NAME
 
