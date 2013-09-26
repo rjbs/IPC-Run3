@@ -414,7 +414,13 @@ sub run3 {
            }
         }
 
-        croak $! if defined $r && $r == -1 && !$options->{return_if_system_error};
+        if (
+            defined $r
+            && ( $r == -1 || ( is_win32 && $r == 0xFF00 ) )
+            && !$options->{return_if_system_error}
+        ) {
+            croak( $errno );
+        }
 
         1;
     };
