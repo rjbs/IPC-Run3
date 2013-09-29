@@ -363,14 +363,12 @@ sub run3 {
             $options if defined $stderr;
 
     # this should make perl close these on exceptions
-#    local *STDIN_SAVE;
+    local *STDIN_SAVE;
     local *STDOUT_SAVE;
     local *STDERR_SAVE;
 
-    my $saved_fd0 = dup( 0 ) if defined $in_fh;
-
-#    open STDIN_SAVE,  "<&STDIN"#  or croak "run3(): $! saving STDIN"
-#        if defined $in_fh;
+    open STDIN_SAVE,  "<&STDIN"  or croak "run3(): $! saving STDIN"
+        if defined $in_fh;
     open STDOUT_SAVE, ">&STDOUT" or croak "run3(): $! saving STDOUT"
         if defined $out_fh;
     open STDERR_SAVE, ">&STDERR" or croak "run3(): $! saving STDERR"
@@ -378,16 +376,9 @@ sub run3 {
 
     my $errno;
     my $ok = eval {
-        # The open() call here seems to not force fd 0 in some cases;
-        # I ran in to trouble when using this in VCP, not sure why.
-        # the dup2() seems to work.
-        dup2( fileno $in_fh, 0 )
-#        open STDIN,  "<&=" . fileno $in_fh
+        open STDIN,  "<&=" . fileno $in_fh
             or croak "run3(): $! redirecting STDIN"
             if defined $in_fh;
-
-#        close $in_fh or croak "$! closing STDIN temp file"
-#            if ref $stdin;
 
         open STDOUT, ">&" . fileno $out_fh
             or croak "run3(): $! redirecting STDOUT"
@@ -428,13 +419,8 @@ sub run3 {
 
     my @errs;
 
-    if ( defined $saved_fd0 ) {
-        dup2( $saved_fd0, 0 );
-        POSIX::close( $saved_fd0 );
-    }
-
-#    open STDIN,  "<&STDIN_SAVE"#  or push @errs, "run3(): $! restoring STDIN"
-#        if defined $in_fh;
+    open STDIN,  "<&STDIN_SAVE"  or push @errs, "run3(): $! restoring STDIN"
+        if defined $in_fh;
     open STDOUT, ">&STDOUT_SAVE" or push @errs, "run3(): $! restoring STDOUT"
         if defined $out_fh;
     open STDERR, ">&STDERR_SAVE" or push @errs, "run3(): $! restoring STDERR"
