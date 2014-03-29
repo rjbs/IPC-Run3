@@ -1,8 +1,11 @@
 #!perl -w
 
 use Test::More;
-eval "use Test::Pod::Coverage 1.04";
-plan skip_all => "Test::Pod::Coverage 1.04 required for testing POD coverage" if $@;
+BEGIN {
+  plan skip_all => "not run unless RELEASE_TESTING"
+    unless $ENV{RELEASE_TESTING};
+}
+use Test::Pod::Coverage 1.04;
 all_pod_coverage_ok(
 	{ trustme => [ qr/_for_(?:created|modified)_(?:on|after|before)\Z/ ] }
 );
