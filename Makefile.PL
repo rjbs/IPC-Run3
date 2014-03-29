@@ -14,7 +14,8 @@ WriteMakefile(
     },
     META_MERGE => {
       resources => {
-        repository => 'http://github.com/rjbs/ipc-run3/',
+        repository => 'http://github.com/rjbs/IPC-Run3/',
+        bugtracker => { web => 'https://github.com/rjbs/IPC-Run3/issues' },
       },
       no_index => {
         dir  => [ qw(lib/IPC/Run3)   ],
