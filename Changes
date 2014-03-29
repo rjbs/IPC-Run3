@@ -1,6 +1,10 @@
 Changes file for IPC::Run3
 
-0.041 2013-09-25
+0.048 2014-03-29
+        - no code changes from 0.047
+        - update bugtracker and repo links
+
+0.047 2013-09-25
         [TRIAL RELEASE]
         - handle system() returning == 0xFF00 on Win32
         - use Win32::ShellQuote for shell quoting on Win32
