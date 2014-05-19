@@ -54,6 +54,7 @@ BEGIN {
 use Carp qw( croak );
 use File::Temp qw( tempfile );
 use POSIX qw( dup dup2 );
+use Scalar::Util qw( reftype openhandle );
 
 # We cache the handles of our temp files in order to
 # keep from having to incur the (largish) overhead of File::Temp
@@ -167,6 +168,8 @@ sub _spool_data_to_child {
                 print $fh $data or die "$! writing to temp file";
                 $seekit = length $data;
             }
+        } else {
+            croak "Don't know what to do with a $type";
         }
 
         seek $fh, 0, 0 or croak "$! seeking on temp file for child's stdin"
@@ -290,7 +293,7 @@ sub _type {
         $redir->isa("IO::Handle")
     };
 
-    my $type = ref $redir;
+    my $type = openhandle $redir ? reftype $redir : ref $redir;
     return $type eq "GLOB" ? "FH" : $type;
 }
 
