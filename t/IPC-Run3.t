@@ -177,6 +177,7 @@ sub {
 
 sub {
     my $fn = "t/test.txt";
+    unlink $fn or warn "$! unlinking $fn" if -e $fn;
     open FH, ">", $fn or warn "$! opening $fn";
 
     ( $in, $out, $err ) = ();
