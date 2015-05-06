@@ -398,6 +398,8 @@ sub run3 {
             if defined $err_fh;
 
         $sys_call_time = gettimeofday() if profiling;
+        
+        $! = 0;
 
         my $r = ref $cmd
               ? system { $cmd->[0] } is_win32 ? quote_native( @$cmd ) : @$cmd
@@ -416,7 +418,7 @@ sub run3 {
 
         if (
             defined $r
-            && ( $r == -1 || ( is_win32 && $r == 0xFF00 ) )
+            && ( $r == -1 || ( is_win32 && $r == 0xFF00 && $errno != 0 ) )
             && !$options->{return_if_system_error}
         ) {
             croak( $errno );
