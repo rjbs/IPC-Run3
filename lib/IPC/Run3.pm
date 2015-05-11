@@ -399,7 +399,7 @@ sub run3 {
 
         $sys_call_time = gettimeofday() if profiling;
         
-        $! = 0;
+        $! = 0;                  # make sure we don't test below against some previous error
 
         my $r = ref $cmd
               ? system { $cmd->[0] } is_win32 ? quote_native( @$cmd ) : @$cmd
