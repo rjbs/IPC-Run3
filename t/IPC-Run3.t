@@ -228,6 +228,13 @@ sub {
 
   }
 },
+
+
+sub {
+  my($in, $out, $err) = ();
+  eval { run3 [ $^X, '-e', 'BEGIN { die }' ], \$in, \$out, \$err };
+  ok $@, '';
+}
 );
 
 plan tests => 0+@tests;
