@@ -680,7 +680,8 @@ from a string, an array or returned by a function) to the temporary file and rew
 
 C<run3()> saves the parent's C<STDIN>, C<STDOUT> and C<STDERR> by duplicating
 them to new filehandles. It duplicates the filehandles from step (1)
-to C<STDIN>, C<STDOUT> and C<STDERR>, resp.
+to C<STDIN>, C<STDOUT> and C<STDERR>, resp.  Saving C<STDIN> is not reliable
+on all platforms, see L</LIMITATIONS>.
 
 =item (4)
 
@@ -690,6 +691,7 @@ specified above.
 =item (5)
 
 C<run3()> restores the parent's C<STDIN>, C<STDOUT> and C<STDERR> saved in step (3).
+Restoring C<STDIN> is not reliable on all platforms, see L</LIMITATIONS>.
 
 =item (6)
 
@@ -720,6 +722,16 @@ a process share the same STDIN/STDOUT/STDERR.  Known failures are Perl ithreads
 on Linux and Win32. Note that C<fork> on Win32 is emulated via Win32 threads
 and hence I/O mix up is possible between forked children here (C<run3> is "fork
 safe" on Unix, though).
+
+C<STDIN> can't be reliably saved and restored on some platforms and thus should
+not be counted on.  In particular be wary of code such as this:
+
+    use IPC::Run3
+    while(<STDIN>) {
+      run3 \@cmd, $stdin, ...;
+    }
+
+may clobber your C<STDIN>.
 
 =head1 DEBUGGING
 
