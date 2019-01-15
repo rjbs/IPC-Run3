@@ -231,10 +231,29 @@ sub {
 
 
 sub {
-  my($in, $out, $err) = ();
+  ($in, $out, $err) = ();
   eval { run3 [ $^X, '-e', 'BEGIN { die }' ], \$in, \$out, \$err };
   ok $@, '';
-}
+},
+
+sub {
+  ($in, $out, $err) = ();
+  eval { run3 [ $^X, '-e', 'print STDOUT "stdout"; print STDERR "stderr"; exit 255;' ], \$in, \$out, \$err };
+  ok $@, '';
+},
+
+sub {
+  ok $out, "stdout";
+},
+
+sub {
+  ok $err, "stderr";
+},
+
+sub {
+  ok $? >> 8, 255;
+},
+
 );
 
 plan tests => 0+@tests;
