@@ -376,6 +376,9 @@ sub run3 {
     open STDERR_SAVE, ">&STDERR" or croak "run3(): $! saving STDERR"
         if defined $err_fh;
 
+    my @stdout_layers = PerlIO::get_layers(STDOUT_SAVE, output => 1);
+    my @stderr_layers = PerlIO::get_layers(STDERR_SAVE, output => 1);
+
     my $errno;
     my $ok = eval {
         # The open() call here seems to not force fd 0 in some cases;
@@ -443,6 +446,19 @@ sub run3 {
     croak join ", ", @errs if @errs;
 
     die $x unless $ok;
+
+    # restore binmodes
+    my %have_stdout = map {; $_ => 1 } PerlIO::get_layers(STDOUT, output => 1);
+    my %have_stderr = map {; $_ => 1 } PerlIO::get_layers(STDOUT, output => 1);
+    for my $want (@stdout_layers) {
+      next if $have_stdout{$want};
+      binmode STDOUT, ":$want";
+    }
+
+    for my $want (@stderr_layers) {
+      next if $have_stderr{$want};
+      binmode *STDERR, ":$want";
+    }
 
     _read_child_output_fh "stdout", $out_type, $stdout, $out_fh, $options
         if defined $out_fh && $out_type && $out_type ne "FH";
