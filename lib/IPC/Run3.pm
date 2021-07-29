@@ -348,16 +348,17 @@ sub run3 {
     # stage prevents later stages from running, and thus from needing
     # cleanup.
 
-    my $in_fh  = _spool_data_to_child $in_type, $stdin,
+    my ($in_fh, $out_fh, $err_fh);
+    $in_fh  = _spool_data_to_child $in_type, $stdin,
         $options->{binmode_stdin} if defined $stdin;
 
-    my $out_fh = _fh_for_child_output "stdout", $out_type, $stdout,
+    $out_fh = _fh_for_child_output "stdout", $out_type, $stdout,
         $options if defined $stdout;
 
     my $tie_err_to_out =
         defined $stderr && defined $stdout && $stderr eq $stdout;
 
-    my $err_fh = $tie_err_to_out
+    $err_fh = $tie_err_to_out
         ? $out_fh
         : _fh_for_child_output "stderr", $err_type, $stderr,
             $options if defined $stderr;
@@ -367,7 +368,7 @@ sub run3 {
     local *STDOUT_SAVE;
     local *STDERR_SAVE;
 
-    my $saved_fd0 = dup( 0 ) if defined $in_fh;
+    my $saved_fd0 = defined $in_fh ? dup( 0 ) : undef;
 
 #    open STDIN_SAVE,  "<&STDIN"#  or croak "run3(): $! saving STDIN"
 #        if defined $in_fh;
