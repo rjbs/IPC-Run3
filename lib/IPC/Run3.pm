@@ -4,7 +4,7 @@ use strict;
 
 =head1 NAME
 
-IPC::Run3 - run a subprocess with input/ouput redirection
+IPC::Run3 - run a subprocess with input/output redirection
 
 =head1 VERSION
 
