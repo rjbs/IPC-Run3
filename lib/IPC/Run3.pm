@@ -160,9 +160,9 @@ sub _spool_data_to_child {
         } elsif ( $type eq "CODE" ) {
             warn "run3(): feeding output of CODE ref '$source' to child STDIN\n"
                 if debugging >= 2;
-            my $parms = [];  # TODO: get these from $options
+            my $params = [];  # TODO: get these from $options
             while (1) {
-                my $data = $source->( @$parms );
+                my $data = $source->( @$params );
                 last unless defined $data;
                 print $fh $data or die "$! writing to temp file";
                 $seekit = length $data;
