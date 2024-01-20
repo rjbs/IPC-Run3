@@ -399,7 +399,7 @@ sub run3 {
             if defined $err_fh;
 
         $sys_call_time = gettimeofday() if profiling;
-        
+
         $! = 0;                  # make sure we don't test below against some previous error
 
         my $r = ref $cmd

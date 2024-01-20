@@ -88,7 +88,7 @@ sub handle_app_exit {
         _r( $self->get_run_cumulative_time, $self->get_run_count ),
         " per call",
         "\n");
-    my $exclusive = 
+    my $exclusive =
         $self->get_app_cumulative_time - $self->get_run_cumulative_time;
     $self->_emit( "IPC::Run3 total spent not in run3(): ",
         _t( $exclusive ),

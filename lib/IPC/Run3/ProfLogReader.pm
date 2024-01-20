@@ -36,7 +36,7 @@ use strict;
 sub new {
     my $class = ref $_[0] ? ref shift : shift;
     my $self = bless { @_ }, $class;
-    
+
     $self->{Source} = "run3.out"
         unless defined $self->{Source} && length $self->{Source};
 
