@@ -1,6 +1,6 @@
 package IPC::Run3::ProfArrayBuffer;
 
-$VERSION = 0.048;
+$VERSION = 0.049;
 
 =head1 NAME
 

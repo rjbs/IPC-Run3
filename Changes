@@ -1,5 +1,11 @@
 Changes file for IPC::Run3
 
+0.049 2024-01-20
+        - avoid some uninitialized warnings in ProfLogReader
+        - improve errno handling on Windows (thanks, Graham Ollis)
+        - avoid leaking fds (thanks, Dan Book)
+        - fix typos in docs (thanks, Yoshikazu Sawa and Jakub Wilk)
+
 0.048 2014-03-29
         - no code changes from 0.047
         - update bugtracker and repo links
