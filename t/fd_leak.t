@@ -1,9 +1,10 @@
-#!perl -w
+#!perl
+use strict;
+use warnings;
 
 use Test::More;
 
 use IPC::Run3;
-use strict;
 
 my ( $in, $out, $err ) = @_;
 

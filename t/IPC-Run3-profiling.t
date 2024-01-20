@@ -1,10 +1,11 @@
-#!perl -w
+#!perl
+use strict;
+use warnings;
 
 BEGIN {
     $ENV{IPCRUN3PROFILE} = "IPC::Run3::ProfArrayBuffer=";
 }
 
-use strict;
 use IPC::Run3;
 use Test;
 

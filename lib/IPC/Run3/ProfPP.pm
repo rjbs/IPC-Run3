@@ -1,6 +1,8 @@
+use strict;
+use warnings;
 package IPC::Run3::ProfPP;
 
-$VERSION = 0.049;
+our $VERSION = 0.049;
 
 =head1 NAME
 
@@ -21,9 +23,8 @@ This class generates reports on each run3_exit() and app_exit() call.
 =cut
 
 require IPC::Run3::ProfReporter;
-@ISA = qw( IPC::Run3::ProfReporter );
+our @ISA = qw( IPC::Run3::ProfReporter );
 
-use strict;
 use POSIX qw( floor );
 
 =head1 METHODS

@@ -1,11 +1,13 @@
-#!perl -w
+#!perl
+
+use strict;
+use warnings;
 
 use Test::More;
 plan skip_all => qq["binmode FH, ':utf8'" needs Perl >= 5.8]
     unless $^V >= 5.008;
 plan tests => 3;
 use IPC::Run3;
-use strict;
 
 my ( $in, $out, $err );
 

@@ -1,6 +1,6 @@
-package IPC::Run3;
-BEGIN { require 5.006_000; } # i.e. 5.6.0
 use strict;
+use warnings;
+package IPC::Run3;
 
 =head1 NAME
 

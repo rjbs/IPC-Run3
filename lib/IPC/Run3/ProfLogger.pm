@@ -1,6 +1,8 @@
+use strict;
+use warnings;
 package IPC::Run3::ProfLogger;
 
-$VERSION = 0.049;
+our $VERSION = 0.049;
 
 =head1 NAME
 
@@ -30,8 +32,6 @@ Its API is compatible with a tiny subset of the other IPC::Run profiling
 classes.
 
 =cut
-
-use strict;
 
 =head1 METHODS
 

@@ -1,6 +1,8 @@
+use strict;
+use warnings;
 package IPC::Run3::ProfLogReader;
 
-$VERSION = 0.049;
+our $VERSION = 0.049;
 
 =head1 NAME
 
@@ -24,8 +26,6 @@ IPC::Run3::ProfLogReader -  read and process a ProfLogger file
 Reads a log file.  Use the filename "-" to read from STDIN.
 
 =cut
-
-use strict;
 
 =head1 METHODS
 
